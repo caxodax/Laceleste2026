@@ -1,0 +1,233 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { ArrowRight, Star, Clock, MapPin, Phone, Loader2 } from 'lucide-react';
+import { Header, Footer, WhatsAppButton } from '@/components/layout';
+import { Button, MenuCard } from '@/components/ui';
+import { useCartStore } from '@/store/cartStore';
+import { getProducts, getCategories } from '@/lib/services/products';
+import { restaurantSettings } from '@/data/menu';
+import { Product, Category } from '@/types';
+import toast from 'react-hot-toast';
+
+export default function HomePage() {
+  const addItem = useCartStore((state) => state.addItem);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [productsData, categoriesData] = await Promise.all([
+          getProducts(),
+          getCategories()
+        ]);
+        setProducts(productsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error fetching home data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const featuredProducts = products.filter((p) => p.featured).slice(0, 4);
+
+  const handleAddToCart = (product: Product) => {
+    addItem(product as any, 1);
+    toast.success(`${product.name} agregado al carrito`, {
+      icon: '🍔',
+      style: {
+        borderRadius: '12px',
+        background: '#0ea5e9',
+        color: '#fff',
+      },
+    });
+  };
+
+  return (
+    <>
+      <Header />
+      
+      <main>
+        {/* Hero Section */}
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+          {/* Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-celeste-600 via-celeste-500 to-celeste-700" />
+          
+          {/* Decorative elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gold-400/20 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full" />
+          </div>
+
+          <div className="container-app relative z-10 py-32">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8 }}
+                className="text-center lg:text-left"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white mb-6"
+                >
+                  <Star className="w-4 h-4 text-gold-400 fill-gold-400" />
+                  <span className="text-sm font-medium">Las mejores de Barquisimeto</span>
+                </motion.div>
+
+                <h1 className="heading-1 text-white mb-6">
+                  Hamburguesas
+                  <span className="block text-gold-400">Artesanales</span>
+                </h1>
+
+                <p className="text-xl text-white/90 mb-8 max-w-lg mx-auto lg:mx-0">
+                  Inspiradas en los sabores de Argentina 🇦🇷
+                  <br />
+                  Hechas con amor y los mejores ingredientes
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                  <Link href="/menu">
+                    <Button variant="gold" size="lg" icon={<ArrowRight className="w-5 h-5" />} iconPosition="right">
+                      Ver Menú
+                    </Button>
+                  </Link>
+                  <Link href="/pedido">
+                    <Button variant="secondary" size="lg" className="bg-white/10 border-white text-white hover:bg-white hover:text-celeste-600">
+                      Hacer Pedido
+                    </Button>
+                  </Link>
+                </div>
+
+                <div className="flex flex-wrap gap-4 mt-8 justify-center lg:justify-start">
+                  <div className="flex items-center gap-2 text-white/80">
+                    <Clock className="w-5 h-5" />
+                    <span className="text-sm font-medium">5PM - 12AM</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-white/80">
+                    <MapPin className="w-5 h-5" />
+                    <span className="text-sm font-medium">Barquisimeto</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-white/80">
+                    <Phone className="w-5 h-5" />
+                    <span className="text-sm font-medium">{restaurantSettings.phone}</span>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="relative hidden lg:block"
+              >
+                <div className="relative w-96 h-96 mx-auto">
+                  <div className="absolute inset-0 bg-gold-400/30 rounded-full blur-3xl animate-pulse" />
+                  <div className="relative w-full h-full rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-celeste-400 to-celeste-600 flex items-center justify-center shadow-2xl">
+                        <span className="font-logo text-white text-5xl">C</span>
+                      </div>
+                      <h2 className="font-logo text-3xl text-white">La Celeste</h2>
+                      <p className="text-white/70 text-xs mt-1">Sabor Argentino</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Featured Products */}
+        <section className="section bg-white overflow-hidden">
+          <div className="container-app">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <span className="badge-gold mb-4">⭐ Lo más pedido</span>
+              <h2 className="heading-2 text-gray-900 mb-4">Nuestros Favoritos</h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                Las hamburguesas que nuestros clientes más aman. 
+                Preparadas con ingredientes frescos y mucho sabor.
+              </p>
+            </motion.div>
+
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 text-celeste-600 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredProducts.map((product, index) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <MenuCard
+                      title={product.name}
+                      description={product.description}
+                      price={product.price}
+                      image={product.thumbnail || product.image}
+                      badge="⭐ Popular"
+                      available={product.available}
+                      onAddToCart={() => handleAddToCart(product)}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="section bg-celeste-600 text-white">
+          <div className="container-app text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="heading-2 mb-4 text-white">¿Listo para ordenar?</h2>
+              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                Haz tu pedido ahora y disfruta de las mejores hamburguesas de Barquisimeto
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/pedido">
+                  <Button variant="gold" size="lg">Hacer Pedido Online</Button>
+                </Link>
+                <a
+                  href={`https://wa.me/${restaurantSettings.whatsapp}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="secondary" size="lg" className="bg-white/10 border-white text-white hover:bg-white hover:text-celeste-600">
+                    WhatsApp
+                  </Button>
+                </a>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+      <WhatsAppButton />
+    </>
+  );
+}
