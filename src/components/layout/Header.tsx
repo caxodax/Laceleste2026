@@ -6,11 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ShoppingCart, User, Instagram, Phone } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useCartStore } from '@/store/cartStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
-import { restaurantSettings } from '@/data/menu';
-
 export function Header() {
+  const info = useSettingsStore(state => state.info);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const itemCount = useCartStore((state) => state.getItemCount());
@@ -69,14 +69,16 @@ export function Header() {
             {/* Actions */}
             <div className="flex items-center gap-4">
               {/* Social Links */}
-              <a
-                href={`https://instagram.com/${restaurantSettings.instagram.replace('@', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:flex p-2 text-gray-600 hover:text-pink-500 transition-colors"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
+              {info?.instagram && (
+                <a
+                  href={`https://instagram.com/${info.instagram.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:flex p-2 text-gray-600 hover:text-pink-500 transition-colors"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+              )}
 
               {/* Cart */}
               <Link
@@ -151,22 +153,26 @@ export function Header() {
                   </Link>
                 ))}
                 <hr className="my-2" />
-                <a
-                  href={`https://instagram.com/${restaurantSettings.instagram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 px-6 py-3 text-gray-700 hover:bg-celeste-50"
-                >
-                  <Instagram className="w-5 h-5 text-pink-500" />
-                  Instagram
-                </a>
-                <a
-                  href={`tel:${restaurantSettings.phone}`}
-                  className="flex items-center gap-3 px-6 py-3 text-gray-700 hover:bg-celeste-50"
-                >
-                  <Phone className="w-5 h-5 text-celeste-500" />
-                  {restaurantSettings.phone}
-                </a>
+                {info?.instagram && (
+                  <a
+                    href={`https://instagram.com/${info.instagram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-6 py-3 text-gray-700 hover:bg-celeste-50"
+                  >
+                    <Instagram className="w-5 h-5 text-pink-500" />
+                    Instagram
+                  </a>
+                )}
+                {info?.phone && (
+                  <a
+                    href={`tel:${info.phone}`}
+                    className="flex items-center gap-3 px-6 py-3 text-gray-700 hover:bg-celeste-50"
+                  >
+                    <Phone className="w-5 h-5 text-celeste-500" />
+                    {info.phone}
+                  </a>
+                )}
                 {!user && (
                   <Link
                     href="/login"

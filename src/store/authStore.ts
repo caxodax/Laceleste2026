@@ -70,8 +70,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   initAuth: () => {
+    const state = useAuthStore.getState();
+    if (state.initialized) return () => {};
+
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      // ... same logic but check if still needed ...
+      if (useAuthStore.getState().user && session?.user?.id === useAuthStore.getState().user?.id) return;
+      
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -98,7 +104,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
     // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          set({ user: null, initialized: true, loading: false });
+          return;
+        }
+
         if (session?.user) {
+          // Only fetch if user changed or not already set
+          const currentUser = useAuthStore.getState().user;
+          if (currentUser?.id === session.user.id) return;
+
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
@@ -116,8 +131,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
             initialized: true,
             loading: false,
           });
-        } else {
-          set({ user: null, initialized: true, loading: false });
         }
       }
     );

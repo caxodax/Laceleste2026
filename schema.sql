@@ -58,16 +58,15 @@ CREATE TABLE IF NOT EXISTS order_items (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. INVOICES
-CREATE TABLE IF NOT EXISTS invoices (
+-- 5. DELIVERY NOTES (Notas de Entrega - Gestión Interna)
+CREATE TABLE IF NOT EXISTS delivery_notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  invoice_number TEXT UNIQUE NOT NULL,
+  note_number TEXT UNIQUE NOT NULL,
   order_id UUID REFERENCES orders(id),
   customer_name TEXT NOT NULL,
   customer_phone TEXT NOT NULL,
   customer_email TEXT,
   customer_address TEXT,
-  customer_rif TEXT,
   subtotal DECIMAL(10, 2) NOT NULL,
   tax DECIMAL(10, 2) NOT NULL,
   delivery_fee DECIMAL(10, 2) NOT NULL,
@@ -81,6 +80,18 @@ CREATE TABLE IF NOT EXISTS invoices (
   paid_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5.1 DELIVERY NOTE ITEMS
+CREATE TABLE IF NOT EXISTS delivery_note_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  note_id UUID REFERENCES delivery_notes(id) ON DELETE CASCADE,
+  product_name TEXT NOT NULL,
+  quantity INTEGER NOT NULL,
+  unit_price DECIMAL(10, 2) NOT NULL,
+  total DECIMAL(10, 2) NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 6. PROFILES (Extending Auth Users)
@@ -160,12 +171,13 @@ INSERT INTO settings (key, value) VALUES
 ]'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
--- RLS POLICIES (Simplificado)
+-- RLS POLICIES
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE delivery_notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE delivery_note_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
@@ -173,10 +185,36 @@ ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public read categories" ON categories FOR SELECT USING (active = TRUE);
 CREATE POLICY "Public read products" ON products FOR SELECT USING (available = TRUE);
 CREATE POLICY "Public read settings" ON settings FOR SELECT USING (TRUE);
+CREATE POLICY "Public read notes" ON delivery_notes FOR SELECT USING (TRUE);
 
 -- Auth access
 CREATE POLICY "Users can read their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+
+-- ADMIN POLICIES
 CREATE POLICY "Admins can do everything on products" ON products FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
--- ... Mas políticas pueden ser agregadas según sea necesario.
+
+CREATE POLICY "Admins can do everything on categories" ON categories FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Admins can do everything on settings" ON settings FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Admins can do everything on orders" ON orders FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Admins can do everything on order_items" ON order_items FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Admins can do everything on delivery_notes" ON delivery_notes FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);
+
+CREATE POLICY "Admins can do everything on delivery_note_items" ON delivery_note_items FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+);

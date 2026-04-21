@@ -16,7 +16,9 @@ import {
   ChevronRight,
   Bell,
   User,
+  Grid,
 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { LogoMini } from '@/components/ui';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/lib/utils';
@@ -24,21 +26,21 @@ import { cn } from '@/lib/utils';
 const menuItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
-  { href: '/admin/facturas', label: 'Facturas', icon: FileText },
+  { href: '/admin/notas-entrega', label: 'Notas de Entrega', icon: FileText },
   { href: '/admin/productos', label: 'Productos', icon: Package },
+  { href: '/admin/categorias', label: 'Categorías', icon: Grid },
   { href: '/admin/configuracion', label: 'Configuración', icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, signOut, initAuth, initialized } = useAuthStore();
+  const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
-  const [currentPath, setCurrentPath] = useState('');
 
   useEffect(() => {
     setHasMounted(true);
     const unsubscribe = initAuth();
-    setCurrentPath(window.location.pathname);
     return () => unsubscribe();
   }, [initAuth]);
 
@@ -84,12 +86,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
             {menuItems.map((item) => {
-              const isActive = currentPath === item.href;
+              const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setCurrentPath(item.href)}
                   className={cn(
                     'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
                     isActive
@@ -160,15 +161,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
                 <nav className="flex-1 px-4 py-6 space-y-1">
                   {menuItems.map((item) => {
-                    const isActive = currentPath === item.href;
+                    const isActive = pathname === item.href;
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
-                        onClick={() => {
-                          setCurrentPath(item.href);
-                          setSidebarOpen(false);
-                        }}
+                        onClick={() => setSidebarOpen(false)}
                         className={cn(
                           'flex items-center gap-3 px-4 py-3 rounded-xl transition-all',
                           isActive

@@ -1,32 +1,49 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowRight, Star, Clock, MapPin, Phone, Loader2 } from 'lucide-react';
 import { Header, Footer, WhatsAppButton } from '@/components/layout';
 import { Button, MenuCard } from '@/components/ui';
 import { useCartStore } from '@/store/cartStore';
 import { getProducts, getCategories } from '@/lib/services/products';
-import { restaurantSettings } from '@/data/menu';
-import { Product, Category } from '@/types';
+import { getAllSettings } from '@/lib/services/settings';
+import { Product, Category, HeroSettings, AboutSettings, RestaurantSettings } from '@/types';
 import toast from 'react-hot-toast';
 
 export default function HomePage() {
   const addItem = useCartStore((state) => state.addItem);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [settings, setSettings] = useState<{
+    info: RestaurantSettings | null;
+    hero: HeroSettings | null;
+    about: AboutSettings | null;
+  }>({ info: null, hero: null, about: null });
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [productsData, categoriesData] = await Promise.all([
+        const [productsData, categoriesData, settingsData] = await Promise.all([
           getProducts(),
-          getCategories()
+          getCategories(),
+          getAllSettings()
         ]);
         setProducts(productsData);
         setCategories(categoriesData);
+        setSettings({
+          info: settingsData.restaurant_info || null,
+          hero: settingsData.hero_settings || null,
+          about: settingsData.about_settings || null,
+        });
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {
@@ -35,6 +52,20 @@ export default function HomePage() {
     }
     fetchData();
   }, []);
+
+  // Carousel logic
+  const nextSlide = useCallback(() => {
+    if (settings.hero?.useCarousel && settings.hero.carouselImages?.length > 0) {
+      setCurrentSlide((prev) => (prev + 1) % settings.hero!.carouselImages.length);
+    }
+  }, [settings.hero]);
+
+  useEffect(() => {
+    if (settings.hero?.useCarousel && settings.hero.carouselImages?.length > 1) {
+      const timer = setInterval(nextSlide, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [settings.hero, nextSlide]);
 
   const featuredProducts = products.filter((p) => p.featured).slice(0, 4);
 
@@ -50,6 +81,14 @@ export default function HomePage() {
     });
   };
 
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-celeste-600 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <>
       <Header />
@@ -57,16 +96,52 @@ export default function HomePage() {
       <main>
         {/* Hero Section */}
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          {/* Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-celeste-600 via-celeste-500 to-celeste-700" />
-          
-          {/* Decorative elements */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gold-400/20 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full" />
+          {/* Background Layer */}
+          <div className="absolute inset-0 z-0">
+            <AnimatePresence mode="wait">
+              {settings.hero?.useCarousel && settings.hero.carouselImages.length > 0 ? (
+                <motion.div
+                  key={`slide-${currentSlide}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1 }}
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${settings.hero.carouselImages[currentSlide]})` }}
+                >
+                  <div className="absolute inset-0 bg-black/40" />
+                </motion.div>
+              ) : settings.hero?.backgroundImage ? (
+                <motion.div 
+                  key="single-bg"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${settings.hero.backgroundImage})` }}
+                >
+                  <div className="absolute inset-0 bg-black/40" />
+                </motion.div>
+              ) : (
+                <div key="gradient-bg" className="absolute inset-0 bg-gradient-to-br from-celeste-600 via-celeste-50 to-celeste-700" />
+              )}
+            </AnimatePresence>
           </div>
 
+          {/* Carousel Indicators */}
+          {settings.hero?.useCarousel && settings.hero.carouselImages.length > 1 && (
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+              {settings.hero.carouselImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    currentSlide === idx ? 'w-8 bg-gold-400' : 'bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+          
           <div className="container-app relative z-10 py-32">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <motion.div
@@ -75,36 +150,36 @@ export default function HomePage() {
                 transition={{ duration: 0.8 }}
                 className="text-center lg:text-left"
               >
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white mb-6"
-                >
-                  <Star className="w-4 h-4 text-gold-400 fill-gold-400" />
-                  <span className="text-sm font-medium">Las mejores de Barquisimeto</span>
-                </motion.div>
+                {settings.hero?.badge && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white mb-6"
+                  >
+                    <Star className="w-4 h-4 text-gold-400 fill-gold-400" />
+                    <span className="text-sm font-medium">{settings.hero.badge}</span>
+                  </motion.div>
+                )}
 
                 <h1 className="heading-1 text-white mb-6">
-                  Hamburguesas
+                  {settings.hero?.title || 'Hamburguesas'}
                   <span className="block text-gold-400">Artesanales</span>
                 </h1>
 
-                <p className="text-xl text-white/90 mb-8 max-w-lg mx-auto lg:mx-0">
-                  Inspiradas en los sabores de Argentina 🇦🇷
-                  <br />
-                  Hechas con amor y los mejores ingredientes
+                <p className="text-xl text-white/90 mb-8 max-w-lg mx-auto lg:mx-0 whitespace-pre-line">
+                  {settings.hero?.subtitle || 'Inspiradas en los sabores de Argentina 🇦🇷\nHechas con amor y los mejores ingredientes'}
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  <Link href="/menu">
+                  <Link href={settings.hero?.ctaLink || "/menu"}>
                     <Button variant="gold" size="lg" icon={<ArrowRight className="w-5 h-5" />} iconPosition="right">
-                      Ver Menú
+                      {settings.hero?.ctaText || 'Ver Menú'}
                     </Button>
                   </Link>
-                  <Link href="/pedido">
+                  <Link href={settings.hero?.secondaryCtaLink || "/pedido"}>
                     <Button variant="secondary" size="lg" className="bg-white/10 border-white text-white hover:bg-white hover:text-celeste-600">
-                      Hacer Pedido
+                      {settings.hero?.secondaryCtaText || 'Hacer Pedido'}
                     </Button>
                   </Link>
                 </div>
@@ -120,7 +195,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center gap-2 text-white/80">
                     <Phone className="w-5 h-5" />
-                    <span className="text-sm font-medium">{restaurantSettings.phone}</span>
+                    <span className="text-sm font-medium">{settings.info?.phone || '0424-5645357'}</span>
                   </div>
                 </div>
               </motion.div>
@@ -212,7 +287,7 @@ export default function HomePage() {
                   <Button variant="gold" size="lg">Hacer Pedido Online</Button>
                 </Link>
                 <a
-                  href={`https://wa.me/${restaurantSettings.whatsapp}`}
+                  href={`https://wa.me/${settings.info?.whatsapp || '584245645357'}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

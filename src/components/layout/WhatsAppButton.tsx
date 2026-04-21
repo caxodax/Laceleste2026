@@ -2,12 +2,13 @@
 
 import { motion } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
-import { restaurantSettings } from '@/data/menu';
+import { useSettingsStore } from '@/store/settingsStore';
 import { getWhatsAppLink } from '@/lib/utils';
 
 export function WhatsAppButton() {
-  const message = '¡Hola! 👋 Me gustaría hacer un pedido en La Celeste 🍔';
-  const whatsappLink = getWhatsAppLink(restaurantSettings.whatsapp, message);
+  const info = useSettingsStore(state => state.info);
+  const message = `¡Hola! 👋 Me gustaría hacer un pedido en ${info?.name || 'La Celeste'} 🍔`;
+  const whatsappLink = getWhatsAppLink(info?.whatsapp || '584245645357', message);
 
   return (
     <motion.a

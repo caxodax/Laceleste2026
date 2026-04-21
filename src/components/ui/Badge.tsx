@@ -74,19 +74,26 @@ export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
   );
 }
 
-// Badge para estados de facturas
-interface InvoiceStatusBadgeProps {
+interface DeliveryNoteStatusBadgeProps {
   status: 'draft' | 'issued' | 'paid' | 'cancelled';
 }
 
-const invoiceStatusConfig = {
-  draft: { label: 'Borrador', variant: 'gray' as const },
-  issued: { label: 'Emitida', variant: 'celeste' as const },
-  paid: { label: 'Pagada', variant: 'success' as const },
-  cancelled: { label: 'Anulada', variant: 'danger' as const },
-};
+export function DeliveryNoteStatusBadge({ status }: DeliveryNoteStatusBadgeProps) {
+  const configs = {
+    draft: { label: 'Borrador', className: 'bg-gray-100 text-gray-600' },
+    issued: { label: 'Pendiente', className: 'bg-amber-100 text-amber-600' },
+    paid: { label: 'Pagada', className: 'bg-green-100 text-green-600' },
+    cancelled: { label: 'Anulada', className: 'bg-red-100 text-red-600' },
+  };
 
-export function InvoiceStatusBadge({ status }: InvoiceStatusBadgeProps) {
-  const config = invoiceStatusConfig[status];
-  return <Badge variant={config.variant}>{config.label}</Badge>;
+  const config = configs[status] || configs.draft;
+
+  return (
+    <span className={cn(
+      'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider',
+      config.className
+    )}>
+      {config.label}
+    </span>
+  );
 }

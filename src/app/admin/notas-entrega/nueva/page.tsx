@@ -19,11 +19,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button, Input, Textarea, Select, Card, CardContent, CardHeader } from '@/components/ui';
-import { formatCurrency, generateInvoiceNumber } from '@/lib/utils';
+import { formatCurrency, generateNoteNumber } from '@/lib/utils';
 import { products, paymentMethods, restaurantSettings } from '@/data/menu';
+import { createDeliveryNote } from '@/lib/services/deliveryNotes';
 import toast from 'react-hot-toast';
 
-interface InvoiceFormData {
+interface DeliveryNoteFormData {
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -34,23 +35,23 @@ interface InvoiceFormData {
   notes?: string;
 }
 
-interface InvoiceItem {
+interface DeliveryNoteItem {
   productId: string;
   productName: string;
   quantity: number;
   unitPrice: number;
 }
 
-export default function NuevaFacturaPage() {
+export default function NuevaNotaEntregaPage() {
   const router = useRouter();
-  const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [items, setItems] = useState<DeliveryNoteItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const invoiceNumber = generateInvoiceNumber();
+  const noteNumber = generateNoteNumber();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<InvoiceFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<DeliveryNoteFormData>({
     defaultValues: {
       paymentMethod: 'efectivo',
     },
@@ -106,7 +107,7 @@ export default function NuevaFacturaPage() {
     setItems(newItems);
   };
 
-  const onSubmit = async (data: InvoiceFormData) => {
+  const onSubmit = async (data: DeliveryNoteFormData) => {
     if (items.length === 0) {
       toast.error('Agrega al menos un producto');
       return;
@@ -114,25 +115,43 @@ export default function NuevaFacturaPage() {
 
     setIsSubmitting(true);
 
-    // Simular guardado
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      await createDeliveryNote({
+        ...data,
+        items: items.map(item => ({
+          ...item,
+          total: item.unitPrice * item.quantity
+        })),
+        subtotal,
+        tax,
+        deliveryFee: 0, 
+        discount: 0,
+        total,
+        status: 'issued',
+        orderId: 'MANUAL',
+      });
 
-    toast.success('Factura creada exitosamente');
-    router.push('/admin/facturas');
+      toast.success('Nota de entrega creada exitosamente');
+      router.push('/admin/notas-entrega');
+    } catch (error) {
+      toast.error('Error al guardar la nota de entrega');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/facturas">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-5 h-5" />
+        <Link href="/admin/notas-entrega">
+          <Button variant="ghost" icon={<ArrowLeft className="w-4 h-4" />}>
+            Volver
           </Button>
         </Link>
-        <div>
-          <h1 className="heading-2 text-gray-900">Nueva Factura</h1>
-          <p className="text-gray-600">Número: {invoiceNumber}</p>
+        <div className="mt-4">
+          <h1 className="heading-2 text-gray-900">Nueva Nota de Entrega</h1>
+          <p className="text-gray-600 mt-1">Generar comprobante para control interno</p>
         </div>
       </div>
 
@@ -332,7 +351,7 @@ export default function NuevaFacturaPage() {
                 <div className="sm:col-span-2">
                   <Textarea
                     label="Notas"
-                    placeholder="Notas adicionales para la factura"
+                    placeholder="Notas adicionales para el comprobante"
                     {...register('notes')}
                   />
                 </div>
@@ -373,7 +392,7 @@ export default function NuevaFacturaPage() {
                   loading={isSubmitting}
                   icon={<Save className="w-5 h-5" />}
                 >
-                  Guardar Factura
+                  Guardar Nota
                 </Button>
                 <Button
                   type="button"
@@ -386,14 +405,14 @@ export default function NuevaFacturaPage() {
                 </Button>
               </div>
 
-              {/* Invoice Preview */}
+              {/* Vista Previa */}
               <Card className="p-4 bg-gray-50">
                 <div className="text-center mb-4">
                   <h4 className="font-logo text-xl text-celeste-600">La Celeste</h4>
                   <p className="text-xs text-gray-500">Hamburguesas Artesanales</p>
                 </div>
                 <div className="text-xs text-gray-600 space-y-1">
-                  <p><strong>Factura:</strong> {invoiceNumber}</p>
+                  <p><strong>Comprobante:</strong> {noteNumber}</p>
                   <p><strong>Fecha:</strong> {new Date().toLocaleDateString('es-VE')}</p>
                   <p><strong>Items:</strong> {items.length}</p>
                 </div>

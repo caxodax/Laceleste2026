@@ -88,12 +88,63 @@ export async function getCategories(): Promise<Category[]> {
     name: item.name,
     description: item.description,
     icon: item.icon,
+    image_url: item.image_url,
+    thumbnail_url: item.thumbnail_url,
     order: item.order_index,
     active: item.active,
   })) as Category[];
 }
 
+export async function createCategory(data: Omit<Category, 'id'> & { id?: string }): Promise<string> {
+  const id = data.id || data.name.toLowerCase().replace(/\s+/g, '-');
+  const { data: item, error } = await supabase
+    .from('categories')
+    .insert({
+      id,
+      name: data.name,
+      description: data.description,
+      icon: data.icon,
+      image_url: (data as any).image_url,
+      thumbnail_url: (data as any).thumbnail_url,
+      order_index: data.order || 0,
+      active: data.active ?? true,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return item.id;
+}
+
+export async function updateCategory(id: string, data: Partial<Category>): Promise<void> {
+  const { error } = await supabase
+    .from('categories')
+    .update({
+      name: data.name,
+      description: data.description,
+      icon: data.icon,
+      image_url: (data as any).image_url,
+      thumbnail_url: (data as any).thumbnail_url,
+      order_index: data.order,
+      active: data.active,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
 export async function createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+  const id = `${data.name.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).substring(2, 7)}`;
   const { data: item, error } = await supabase
     .from('products')
     .insert({

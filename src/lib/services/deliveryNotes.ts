@@ -1,11 +1,11 @@
 import { supabase } from '@/lib/supabase';
-import { Invoice, InvoiceItem } from '@/types';
-import { generateInvoiceNumber } from '@/lib/utils';
+import { DeliveryNote, DeliveryNoteItem } from '@/types';
+import { generateNoteNumber } from '@/lib/utils';
 
-export async function getInvoices(statusFilter?: string): Promise<Invoice[]> {
+export async function getDeliveryNotes(statusFilter?: string): Promise<DeliveryNote[]> {
   let query = supabase
-    .from('invoices')
-    .select('*, invoice_items(*)');
+    .from('delivery_notes')
+    .select('*, delivery_note_items(*)');
 
   if (statusFilter && statusFilter !== 'all') {
     query = query.eq('status', statusFilter);
@@ -15,31 +15,31 @@ export async function getInvoices(statusFilter?: string): Promise<Invoice[]> {
 
   if (error) throw error;
 
-  return data.map(mapInvoiceFromDB);
+  return data.map(mapNoteFromDB);
 }
 
-export async function getInvoice(id: string): Promise<Invoice | null> {
+export async function getDeliveryNote(id: string): Promise<DeliveryNote | null> {
   const { data, error } = await supabase
-    .from('invoices')
-    .select('*, invoice_items(*)')
+    .from('delivery_notes')
+    .select('*, delivery_note_items(*)')
     .eq('id', id)
     .single();
 
   if (error) return null;
 
-  return mapInvoiceFromDB(data);
+  return mapNoteFromDB(data);
 }
 
-export async function createInvoice(
-  data: Omit<Invoice, 'id' | 'invoiceNumber' | 'createdAt' | 'updatedAt'>
+export async function createDeliveryNote(
+  data: Omit<DeliveryNote, 'id' | 'noteNumber' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {
-  const invoiceNumber = generateInvoiceNumber();
+  const noteNumber = generateNoteNumber();
   
-  // 1. Insert invoice
-  const { data: invoice, error: invoiceError } = await supabase
-    .from('invoices')
+  // 1. Insert delivery note
+  const { data: note, error: noteError } = await supabase
+    .from('delivery_notes')
     .insert({
-      invoice_number: invoiceNumber,
+      note_number: noteNumber,
       order_id: data.orderId,
       customer_name: data.customerName,
       customer_phone: data.customerPhone,
@@ -59,11 +59,11 @@ export async function createInvoice(
     .select()
     .single();
 
-  if (invoiceError) throw invoiceError;
+  if (noteError) throw noteError;
 
   // 2. Insert items
-  const invoiceItems = data.items.map((item: InvoiceItem) => ({
-    invoice_id: invoice.id,
+  const noteItems = data.items.map((item: DeliveryNoteItem) => ({
+    note_id: note.id,
     product_name: item.productName,
     quantity: item.quantity,
     unit_price: item.unitPrice,
@@ -72,17 +72,17 @@ export async function createInvoice(
   }));
 
   const { error: itemsError } = await supabase
-    .from('invoice_items')
-    .insert(invoiceItems);
+    .from('delivery_note_items')
+    .insert(noteItems);
 
   if (itemsError) throw itemsError;
 
-  return invoice.id;
+  return note.id;
 }
 
-export async function updateInvoice(id: string, data: Partial<Invoice>): Promise<void> {
+export async function updateDeliveryNote(id: string, data: Partial<DeliveryNote>): Promise<void> {
   const { error } = await supabase
-    .from('invoices')
+    .from('delivery_notes')
     .update({
       ...data,
       updated_at: new Date().toISOString(),
@@ -92,9 +92,9 @@ export async function updateInvoice(id: string, data: Partial<Invoice>): Promise
   if (error) throw error;
 }
 
-export async function issueInvoice(id: string): Promise<void> {
+export async function issueDeliveryNote(id: string): Promise<void> {
   const { error } = await supabase
-    .from('invoices')
+    .from('delivery_notes')
     .update({
       status: 'issued',
       issued_at: new Date().toISOString(),
@@ -105,9 +105,9 @@ export async function issueInvoice(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function markInvoiceAsPaid(id: string, paymentReference?: string): Promise<void> {
+export async function markNoteAsPaid(id: string, paymentReference?: string): Promise<void> {
   const { error } = await supabase
-    .from('invoices')
+    .from('delivery_notes')
     .update({
       status: 'paid',
       payment_reference: paymentReference,
@@ -119,9 +119,9 @@ export async function markInvoiceAsPaid(id: string, paymentReference?: string): 
   if (error) throw error;
 }
 
-export async function cancelInvoice(id: string): Promise<void> {
+export async function cancelDeliveryNote(id: string): Promise<void> {
   const { error } = await supabase
-    .from('invoices')
+    .from('delivery_notes')
     .update({
       status: 'cancelled',
       updated_at: new Date().toISOString(),
@@ -131,25 +131,25 @@ export async function cancelInvoice(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function getInvoicesByDateRange(
+export async function getDeliveryNotesByDateRange(
   startDate: Date,
   endDate: Date
-): Promise<Invoice[]> {
+): Promise<DeliveryNote[]> {
   const { data, error } = await supabase
-    .from('invoices')
-    .select('*, invoice_items(*)')
+    .from('delivery_notes')
+    .select('*, delivery_note_items(*)')
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString())
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
-  return data.map(mapInvoiceFromDB);
+  return data.map(mapNoteFromDB);
 }
 
 export async function getTotalRevenue(startDate?: Date, endDate?: Date): Promise<number> {
   let query = supabase
-    .from('invoices')
+    .from('delivery_notes')
     .select('total')
     .eq('status', 'paid');
 
@@ -161,14 +161,14 @@ export async function getTotalRevenue(startDate?: Date, endDate?: Date): Promise
 
   if (error) throw error;
 
-  return data.reduce((sum, inv) => sum + inv.total, 0);
+  return data.reduce((sum, item) => sum + item.total, 0);
 }
 
-// Helper to map DB record to Invoice type
-function mapInvoiceFromDB(record: any): Invoice {
+// Helper to map DB record to DeliveryNote type
+function mapNoteFromDB(record: any): DeliveryNote {
   return {
     id: record.id,
-    invoiceNumber: record.invoice_number,
+    noteNumber: record.note_number,
     orderId: record.order_id,
     customerName: record.customer_name,
     customerPhone: record.customer_phone,
@@ -177,7 +177,7 @@ function mapInvoiceFromDB(record: any): Invoice {
     customerRif: record.customer_rif,
     subtotal: record.subtotal,
     tax: record.tax,
-    taxRate: 0.16, // Default or fetch from settings
+    taxRate: 0.16,
     deliveryFee: record.delivery_fee,
     discount: record.discount,
     total: record.total,
@@ -189,8 +189,8 @@ function mapInvoiceFromDB(record: any): Invoice {
     updatedAt: new Date(record.updated_at),
     issuedAt: record.issued_at ? new Date(record.issued_at) : undefined,
     paidAt: record.paid_at ? new Date(record.paid_at) : undefined,
-    items: record.invoice_items.map((item: any) => ({
-      productId: '', // Not strictly needed for display
+    items: (record.delivery_note_items || []).map((item: any) => ({
+      productId: '', 
       productName: item.product_name,
       quantity: item.quantity,
       unitPrice: item.unit_price,

@@ -10,11 +10,12 @@ import {
   Clock,
   Loader2,
   Users,
+  Grid,
 } from 'lucide-react';
 import { StatCard, Card, CardContent, CardHeader, OrderStatusBadge } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { getRecentOrders, getTodayOrders } from '@/lib/services/orders';
-import { getInvoicesByDateRange, getTotalRevenue } from '@/lib/services/invoices';
+import { getDeliveryNotesByDateRange, getTotalRevenue } from '@/lib/services/deliveryNotes';
 import { supabase } from '@/lib/supabase';
 import { Order } from '@/types';
 import toast from 'react-hot-toast';
@@ -24,7 +25,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState([
     { title: 'Ventas del Día', value: '$0.00', icon: <DollarSign className="w-6 h-6" />, color: 'celeste' as const },
     { title: 'Pedidos Hoy', value: '0', icon: <ShoppingBag className="w-6 h-6" />, color: 'gold' as const },
-    { title: 'Facturas Hoy', value: '0', icon: <FileText className="w-6 h-6" />, color: 'green' as const },
+    { title: 'Notas de Entrega Hoy', value: '0', icon: <FileText className="w-6 h-6" />, color: 'green' as const },
     { title: 'Ticket Promedio', value: '$0.00', icon: <TrendingUp className="w-6 h-6" />, color: 'celeste' as const },
   ]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -59,10 +60,10 @@ export default function AdminDashboard() {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const [todayOrders, recent, todayInvoices, revenue] = await Promise.all([
+      const [todayOrders, recent, todayNotes, revenue] = await Promise.all([
         getTodayOrders(),
         getRecentOrders(5),
-        getInvoicesByDateRange(today, tomorrow),
+        getDeliveryNotesByDateRange(today, tomorrow),
         getTotalRevenue(today, tomorrow)
       ]);
 
@@ -89,8 +90,8 @@ export default function AdminDashboard() {
           color: 'gold' as const,
         },
         {
-          title: 'Facturas Hoy',
-          value: todayInvoices.length.toString(),
+          title: 'Notas de Entrega Hoy',
+          value: todayNotes.length.toString(),
           icon: <FileText className="w-6 h-6" />,
           color: 'green' as const,
         },
@@ -280,11 +281,11 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <a
-                href="/admin/facturas"
+                href="/admin/notas-entrega"
                 className="flex flex-col items-center gap-2 p-4 bg-celeste-50 rounded-xl hover:bg-celeste-100 transition-colors"
               >
                 <FileText className="w-8 h-8 text-celeste-600" />
-                <span className="text-sm font-medium text-celeste-700">Facturas</span>
+                <span className="text-sm font-medium text-celeste-700">Notas de Entrega</span>
               </a>
               <a
                 href="/admin/productos"
@@ -313,6 +314,13 @@ export default function AdminDashboard() {
               >
                 <Users className="w-8 h-8 text-indigo-600" />
                 <span className="text-sm font-medium text-indigo-700">Usuarios</span>
+              </a>
+              <a
+                href="/admin/categorias"
+                className="flex flex-col items-center gap-2 p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
+              >
+                <Grid className="w-8 h-8 text-purple-600" />
+                <span className="text-sm font-medium text-purple-700">Categorías</span>
               </a>
             </div>
           </CardContent>

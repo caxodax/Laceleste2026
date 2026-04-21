@@ -5,6 +5,9 @@ const nextConfig = {
     unoptimized: true, // Necesario para export estático
   },
   trailingSlash: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
 }
 
 module.exports = nextConfig

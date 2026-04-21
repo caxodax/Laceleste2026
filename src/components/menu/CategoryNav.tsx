@@ -55,7 +55,13 @@ export function CategoryNav({ categories, activeCategory, onCategoryChange }: Ca
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <span>{category.icon}</span>
+              <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center overflow-hidden">
+                {category.image_url ? (
+                  <img src={category.thumbnail_url || category.image_url} alt="" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  category.icon
+                )}
+              </span>
               <span className="font-medium">{category.name}</span>
             </motion.button>
           ))}

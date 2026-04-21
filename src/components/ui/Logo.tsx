@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useSettingsStore } from '@/store/settingsStore';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -25,6 +26,7 @@ const textSizes = {
 };
 
 export function Logo({ size = 'md', showText = true, className, animated = true }: LogoProps) {
+  const info = useSettingsStore(state => state.info);
   const Wrapper = animated ? motion.div : 'div';
   const animationProps = animated
     ? {
@@ -39,25 +41,32 @@ export function Logo({ size = 'md', showText = true, className, animated = true 
       className={cn('flex items-center gap-3', className)}
       {...animationProps}
     >
-      {/* Logo Icon - Representación del logo de La Celeste */}
+      {/* Logo Icon */}
       <div
         className={cn(
           sizes[size],
-          'relative rounded-full bg-gradient-to-br from-celeste-400 via-celeste-500 to-celeste-600 shadow-lg flex items-center justify-center overflow-hidden'
+          'relative rounded-full flex items-center justify-center overflow-hidden',
+          !info?.logo && 'bg-gradient-to-br from-celeste-400 via-celeste-500 to-celeste-600 shadow-lg'
         )}
       >
-        {/* Estrellas decorativas */}
-        <div className="absolute top-1 left-2 text-white/80 text-xs">★</div>
-        <div className="absolute top-1 right-2 text-white/80 text-xs">★</div>
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 text-white/80 text-xs">★</div>
-        
-        {/* Letra C estilizada */}
-        <span className="font-logo text-white text-2xl md:text-3xl font-bold drop-shadow-lg">
-          C
-        </span>
-        
-        {/* Efecto de brillo */}
-        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/30 rounded-full" />
+        {info?.logo ? (
+          <img src={info.logo} alt="Logo" className="w-full h-full object-contain" />
+        ) : (
+          <>
+            {/* Estrellas decorativas */}
+            <div className="absolute top-1 left-2 text-white/80 text-xs">★</div>
+            <div className="absolute top-1 right-2 text-white/80 text-xs">★</div>
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 text-white/80 text-xs">★</div>
+            
+            {/* Letra C estilizada */}
+            <span className="font-logo text-white text-2xl md:text-3xl font-bold drop-shadow-lg">
+              C
+            </span>
+            
+            {/* Efecto de brillo */}
+            <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/30 rounded-full" />
+          </>
+        )}
       </div>
 
       {/* Texto del logo */}
@@ -70,7 +79,7 @@ export function Logo({ size = 'md', showText = true, className, animated = true 
               'bg-gradient-to-r from-celeste-500 via-celeste-600 to-celeste-700 bg-clip-text text-transparent'
             )}
           >
-            La Celeste
+            {info?.name || 'La Celeste'}
           </span>
           <span className="text-xs text-gray-500 font-medium tracking-widest uppercase">
             Hamburguesas
@@ -82,14 +91,21 @@ export function Logo({ size = 'md', showText = true, className, animated = true 
 }
 
 export function LogoMini({ className }: { className?: string }) {
+  const info = useSettingsStore(state => state.info);
+  
   return (
     <div
       className={cn(
-        'w-8 h-8 rounded-full bg-gradient-to-br from-celeste-400 to-celeste-600 flex items-center justify-center shadow-md',
+        'w-8 h-8 rounded-full flex items-center justify-center shadow-md overflow-hidden',
+        !info?.logo ? 'bg-gradient-to-br from-celeste-400 to-celeste-600' : 'bg-transparent',
         className
       )}
     >
-      <span className="font-logo text-white text-sm font-bold">C</span>
+      {info?.logo ? (
+        <img src={info.logo} alt="Logo" className="w-full h-full object-contain" />
+      ) : (
+        <span className="font-logo text-white text-sm font-bold">C</span>
+      )}
     </div>
   );
 }

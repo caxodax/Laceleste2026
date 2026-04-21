@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { 
@@ -15,14 +15,15 @@ import {
   Plus,
   Trash2,
   CheckCircle,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { Header, Footer, WhatsAppButton } from '@/components/layout';
 import { Button, Input, Textarea, Select, Card, CardContent } from '@/components/ui';
 import { useCartStore } from '@/store/cartStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { formatCurrency, getWhatsAppLink } from '@/lib/utils';
-import { restaurantSettings, paymentMethods } from '@/data/menu';
 import toast from 'react-hot-toast';
 
 interface OrderFormData {
@@ -36,9 +37,15 @@ interface OrderFormData {
 }
 
 export default function PedidoPage() {
+  const { info, initialized } = useSettingsStore();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   const { items, updateQuantity, removeItem, getSubtotal, clearCart } = useCartStore();
   const subtotal = getSubtotal();
@@ -51,8 +58,8 @@ export default function PedidoPage() {
   });
 
   const deliveryType = watch('deliveryType');
-  const deliveryFee = deliveryType === 'delivery' ? restaurantSettings.deliveryFee : 0;
-  const tax = subtotal * restaurantSettings.taxRate;
+  const deliveryFee = (deliveryType === 'delivery' && info?.showDelivery) ? (info?.deliveryFee || 0) : 0;
+  const tax = info?.showTax ? (subtotal * (info?.taxRate || 0)) : 0;
   const total = subtotal + tax + deliveryFee;
 
   const onSubmit = async (data: OrderFormData) => {
@@ -68,10 +75,11 @@ export default function PedidoPage() {
       .map((item) => `• ${item.quantity}x ${item.product.name} - ${formatCurrency(item.product.price * item.quantity)}`)
       .join('\n');
 
-    const paymentInfo = paymentMethods.find((m) => m.id === data.paymentMethod);
+    const paymentMethodsList = info?.paymentMethods || [];
+    const paymentInfo = paymentMethodsList.find((m) => m.id === data.paymentMethod);
 
     const message = `
-🍔 *NUEVO PEDIDO - LA CELESTE*
+🍔 *NUEVO PEDIDO - ${info?.name || 'LA CELESTE'}*
 
 👤 *Cliente:* ${data.customerName}
 📱 *Teléfono:* ${data.customerPhone}
@@ -85,7 +93,7 @@ ${itemsList}
 
 💰 *RESUMEN:*
 Subtotal: ${formatCurrency(subtotal)}
-IVA (16%): ${formatCurrency(tax)}
+${tax > 0 ? `IVA (${(info?.taxRate || 0) * 100}%): ${formatCurrency(tax)}` : ''}
 ${deliveryFee > 0 ? `Delivery: ${formatCurrency(deliveryFee)}` : ''}
 *TOTAL: ${formatCurrency(total)}*
 
@@ -97,13 +105,21 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
     `.trim();
 
     // Abrir WhatsApp
-    const whatsappLink = getWhatsAppLink(restaurantSettings.whatsapp, message);
+    const whatsappLink = getWhatsAppLink(info?.whatsapp || '584245645357', message);
     window.open(whatsappLink, '_blank');
 
     setIsSubmitting(false);
     setOrderComplete(true);
     clearCart();
   };
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-celeste-600 animate-spin" />
+      </div>
+    );
+  }
 
   if (orderComplete) {
     return (
@@ -364,7 +380,9 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                                 <Truck className="w-6 h-6 text-celeste-500" />
                                 <div>
                                   <span className="font-medium">Delivery</span>
-                                  <p className="text-sm text-gray-500">{formatCurrency(restaurantSettings.deliveryFee)}</p>
+                                  <p className="text-sm text-gray-500">
+                                    {info?.showDelivery ? formatCurrency(info?.deliveryFee || 0) : 'Gratis'}
+                                  </p>
                                 </div>
                               </label>
                             </div>
@@ -410,7 +428,7 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                         </h2>
 
                         <div className="space-y-3">
-                          {paymentMethods.map((method) => (
+                          {(info?.paymentMethods || []).filter(m => m.active).map((method) => (
                             <label
                               key={method.id}
                               className="flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer hover:border-celeste-300 transition-all"
@@ -423,7 +441,6 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                               />
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xl">{method.icon}</span>
                                   <span className="font-medium">{method.name}</span>
                                 </div>
                                 <p className="text-sm text-gray-500 mt-1">{method.details}</p>
@@ -468,10 +485,12 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                         <span className="text-gray-600">Subtotal ({items.length} items)</span>
                         <span className="font-medium">{formatCurrency(subtotal)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">IVA (16%)</span>
-                        <span className="font-medium">{formatCurrency(tax)}</span>
-                      </div>
+                      {tax > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">IVA ({(info?.taxRate || 0) * 100}%)</span>
+                          <span className="font-medium">{formatCurrency(tax)}</span>
+                        </div>
+                      )}
                       {deliveryFee > 0 && (
                         <div className="flex justify-between">
                           <span className="text-gray-600">Delivery</span>

@@ -13,53 +13,53 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { Button, Input, Card, CardContent, InvoiceStatusBadge, Modal } from '@/components/ui';
+import { Button, Input, Card, CardContent, DeliveryNoteStatusBadge, Modal } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { getInvoices } from '@/lib/services/invoices';
-import { Invoice } from '@/types';
+import { getDeliveryNotes } from '@/lib/services/deliveryNotes';
+import { DeliveryNote } from '@/types';
 import toast from 'react-hot-toast';
 
-export default function FacturasPage() {
+export default function NotasEntregaPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [invoicesList, setInvoicesList] = useState<Invoice[]>([]);
+  const [selectedNote, setSelectedNote] = useState<DeliveryNote | null>(null);
+  const [notesList, setNotesList] = useState<DeliveryNote[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchInvoices();
+    fetchNotes();
   }, []);
 
-  async function fetchInvoices() {
+  async function fetchNotes() {
     try {
       setLoading(true);
-      const data = await getInvoices();
-      setInvoicesList(data);
+      const data = await getDeliveryNotes();
+      setNotesList(data);
     } catch (error) {
-      toast.error('Error al cargar facturas');
+      toast.error('Error al cargar notas de entrega');
     } finally {
       setLoading(false);
     }
   }
 
-  const filteredInvoices = invoicesList.filter((invoice) => {
+  const filteredNotes = notesList.filter((note) => {
     const term = searchTerm.toLowerCase();
     const matchesSearch =
-      invoice.id.toLowerCase().includes(term) ||
-      invoice.customerName.toLowerCase().includes(term);
-    const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
+      note.noteNumber.toLowerCase().includes(term) ||
+      note.customerName.toLowerCase().includes(term);
+    const matchesStatus = statusFilter === 'all' || note.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalPaid = invoicesList
-    .filter((i) => i.status === 'paid')
-    .reduce((sum, i) => sum + i.total, 0);
+  const totalPaid = notesList
+    .filter((n) => n.status === 'paid')
+    .reduce((sum, n) => sum + n.total, 0);
 
-  if (loading && invoicesList.length === 0) {
+  if (loading && notesList.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 text-celeste-600 animate-spin mb-4" />
-        <p className="text-gray-500">Cargando facturas...</p>
+        <Loader2 className="w-10 h-10 text-celeste-600 animate-spin mb-4" />
+        <p className="text-gray-500">Cargando notas de entrega...</p>
       </div>
     );
   }
@@ -69,12 +69,12 @@ export default function FacturasPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="heading-2 text-gray-900">Facturas</h1>
-          <p className="text-gray-600 mt-1">Gestiona las facturas del restaurante</p>
+          <h1 className="heading-2 text-gray-900">Notas de Entrega</h1>
+          <p className="text-gray-600 mt-1">Gestión administrativa interna</p>
         </div>
-        <Link href="/admin/facturas/nueva">
+        <Link href="/admin/notas-entrega/nueva">
           <Button variant="primary" icon={<Plus className="w-5 h-5" />}>
-            Nueva Factura
+            Nueva Nota
           </Button>
         </Link>
       </div>
@@ -82,19 +82,19 @@ export default function FacturasPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4">
-          <p className="text-sm text-gray-500 font-medium">Total Facturas</p>
-          <p className="text-2xl font-bold text-gray-900">{invoicesList.length}</p>
+          <p className="text-sm text-gray-500 font-medium">Total Registros</p>
+          <p className="text-2xl font-bold text-gray-900">{notesList.length}</p>
         </Card>
         <Card className="p-4">
           <p className="text-sm text-gray-500 font-medium">Pagadas</p>
           <p className="text-2xl font-bold text-green-600">
-            {invoicesList.filter((i) => i.status === 'paid').length}
+            {notesList.filter((n) => n.status === 'paid').length}
           </p>
         </Card>
         <Card className="p-4">
           <p className="text-sm text-gray-500 font-medium">Pendientes</p>
           <p className="text-2xl font-bold text-yellow-600">
-            {invoicesList.filter((i) => i.status === 'issued').length}
+            {notesList.filter((n) => n.status === 'issued').length}
           </p>
         </Card>
         <Card className="p-4">
@@ -141,7 +141,7 @@ export default function FacturasPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b bg-gray-50">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Factura</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Comprobante</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Cliente</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">RIF</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase">Total</th>
@@ -151,9 +151,9 @@ export default function FacturasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredInvoices.map((invoice, index) => (
+              {filteredNotes.map((note, index) => (
                 <motion.tr
-                  key={invoice.id}
+                  key={note.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -165,22 +165,22 @@ export default function FacturasPage() {
                         <FileText className="w-4 h-4 text-celeste-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 text-xs">{invoice.id.substring(0, 15)}...</p>
-                        <p className="text-[10px] text-gray-400">Pedido: {invoice.orderId.substring(0, 8)}</p>
+                        <p className="font-medium text-gray-900 text-xs">{note.noteNumber}</p>
+                        <p className="text-[10px] text-gray-400">Pedido: {note.orderId.substring(0, 8)}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700 font-medium">{invoice.customerName}</td>
-                  <td className="px-6 py-4 text-gray-500 text-xs">{invoice.customerRif || '-'}</td>
-                  <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(invoice.total)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700 font-medium">{note.customerName}</td>
+                  <td className="px-6 py-4 text-gray-500 text-xs">{note.customerRif || '-'}</td>
+                  <td className="px-6 py-4 font-bold text-gray-900">{formatCurrency(note.total)}</td>
                   <td className="px-6 py-4">
-                    <InvoiceStatusBadge status={invoice.status} />
+                    <DeliveryNoteStatusBadge status={note.status} />
                   </td>
-                  <td className="px-6 py-4 text-gray-500 text-xs">{formatDate(invoice.createdAt)}</td>
+                  <td className="px-6 py-4 text-gray-500 text-xs">{formatDate(note.createdAt)}</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => setSelectedInvoice(invoice)}
+                        onClick={() => setSelectedNote(note)}
                         className="p-1.5 text-gray-400 hover:text-celeste-600 hover:bg-celeste-50 rounded-lg transition-colors"
                         title="Ver detalle"
                       >
@@ -197,42 +197,56 @@ export default function FacturasPage() {
           </table>
         </div>
 
-        {filteredInvoices.length === 0 && !loading && (
+        {filteredNotes.length === 0 && !loading && (
           <div className="text-center py-12">
             <FileText className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">No se encontraron facturas</p>
+            <p className="text-gray-500">No se encontraron registros</p>
           </div>
         )}
       </Card>
 
-      {/* Invoice Preview Modal */}
       <Modal
-        isOpen={!!selectedInvoice}
-        onClose={() => setSelectedInvoice(null)}
-        title={`Detalle de Factura`}
+        isOpen={!!selectedNote}
+        onClose={() => setSelectedNote(null)}
+        title={`Detalle de Comprobante Interno`}
         size="lg"
       >
-        {selectedInvoice && (
+        {selectedNote && (
           <div className="space-y-6">
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-amber-700 font-bold uppercase tracking-wide">
+                ESTO NO ES UNA FACTURA FISCAL
+              </p>
+              <p className="text-xs text-amber-600">Documento para control interno y logística únicamente.</p>
+            </div>
+          </div>
+        </div>
             <div className="flex justify-between items-start border-b pb-4">
               <div>
                 <h3 className="font-bold text-2xl text-celeste-600">LA CELESTE</h3>
                 <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Hamburguesas Artesanales</p>
-                <p className="text-[10px] text-gray-400 mt-2 font-mono">{selectedInvoice.id}</p>
+                <p className="text-[10px] text-gray-400 mt-2 font-mono">{selectedNote.noteNumber}</p>
               </div>
-              <InvoiceStatusBadge status={selectedInvoice.status} />
+              <DeliveryNoteStatusBadge status={selectedNote.status} />
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Cliente</p>
-                <p className="font-bold text-gray-900">{selectedInvoice.customerName}</p>
-                <p className="text-sm text-gray-600">Rif/DNI: {selectedInvoice.customerRif || 'N/A'}</p>
+                <p className="font-bold text-gray-900">{selectedNote.customerName}</p>
+                <p className="text-sm text-gray-600">Rif/DNI: {selectedNote.customerRif || 'N/A'}</p>
               </div>
               <div className="text-right space-y-1">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Fecha Emisión</p>
-                <p className="font-bold text-gray-900">{formatDate(selectedInvoice.createdAt)}</p>
-                <p className="text-sm text-gray-600">Ref Pedido: {selectedInvoice.orderId.substring(0, 10)}</p>
+                <p className="font-bold text-gray-900">{formatDate(selectedNote.createdAt)}</p>
+                <p className="text-sm text-gray-600">Ref Pedido: {selectedNote.orderId.substring(0, 10)}</p>
               </div>
             </div>
 
@@ -245,10 +259,11 @@ export default function FacturasPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {selectedInvoice.items && selectedInvoice.items.map((item, i) => (
+                  {selectedNote.items && selectedNote.items.map((item, i) => (
                     <tr key={i}>
-                      <td className="py-2 text-gray-700">{item.quantity}x {item.product_name}</td>
-                      <td className="py-2 text-right font-medium">{formatCurrency(item.total_price)}</td>
+                      <td className="py-2 text-gray-900">{item.productName}</td>
+                      <td className="py-2 text-center text-gray-600">{item.quantity}</td>
+                      <td className="py-2 text-right text-gray-900 font-medium">{formatCurrency(item.total)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -257,10 +272,10 @@ export default function FacturasPage() {
 
             <div className="flex justify-between items-center p-5 bg-celeste-600 text-white rounded-2xl shadow-lg shadow-celeste-200">
               <div>
-                <p className="text-xs font-bold text-celeste-100 uppercase tracking-widest">Total Facturado</p>
+                <p className="text-xs font-bold text-celeste-100 uppercase tracking-widest">Monto Total</p>
                 <p className="text-xs text-celeste-100 opacity-80 decoration-celeste-100">Incluye IGTF/IVA si aplica</p>
               </div>
-              <span className="text-3xl font-black">{formatCurrency(selectedInvoice.total)}</span>
+              <span className="text-3xl font-black">{formatCurrency(selectedNote.total)}</span>
             </div>
 
             <div className="flex gap-3 pt-2">

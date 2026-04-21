@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'react-hot-toast';
+import { AppInit } from '@/components/layout/AppInit';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -42,7 +43,9 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-screen bg-cream-50">
-        {children}
+        <AppInit>
+          {children}
+        </AppInit>
         <Toaster
           position="top-center"
           toastOptions={{

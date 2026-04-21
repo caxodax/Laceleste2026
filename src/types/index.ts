@@ -20,6 +20,8 @@ export interface Category {
   name: string;
   description?: string;
   icon?: string;
+  image_url?: string;
+  thumbnail_url?: string;
   order: number;
   active: boolean;
 }
@@ -49,20 +51,20 @@ export interface Order {
   updatedAt: Date;
 }
 
-export interface Invoice {
+export interface DeliveryNote {
   id: string;
-  invoiceNumber: string;
+  noteNumber: string;
   orderId: string;
-  order: Order;
+  order?: Order;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
   customerAddress?: string;
   customerRif?: string;
-  items: InvoiceItem[];
+  items: DeliveryNoteItem[];
   subtotal: number;
   tax: number;
-  taxRate: number;
+  taxRate?: number;
   deliveryFee: number;
   discount: number;
   total: number;
@@ -76,7 +78,7 @@ export interface Invoice {
   paidAt?: Date;
 }
 
-export interface InvoiceItem {
+export interface DeliveryNoteItem {
   productId: string;
   productName: string;
   quantity: number;
@@ -103,15 +105,34 @@ export interface RestaurantSettings {
   email?: string;
   address: string;
   instagram: string;
-  schedule: {
-    [key: string]: { open: string; close: string; closed?: boolean };
-  };
   taxRate: number;
+  showTax: boolean;
   deliveryFee: number;
-  minOrderDelivery: number;
+  showDelivery: boolean;
   paymentMethods: PaymentMethod[];
   currency: string;
   currencySymbol: string;
+}
+
+export interface HeroSettings {
+  badge: string;
+  title: string;
+  subtitle: string;
+  backgroundImage?: string;
+  useCarousel: boolean;
+  carouselImages: string[];
+  ctaText: string;
+  ctaLink: string;
+  secondaryCtaText: string;
+  secondaryCtaLink: string;
+  showStats: boolean;
+}
+
+export interface AboutSettings {
+  title: string;
+  description: string;
+  image?: string;
+  stats?: { label: string; value: string }[];
 }
 
 export interface PaymentMethod {

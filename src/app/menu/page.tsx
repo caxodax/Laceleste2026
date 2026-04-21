@@ -12,6 +12,11 @@ export default function MenuPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -21,7 +26,7 @@ export default function MenuPage() {
           getCategories()
         ]);
         setProducts(productsData);
-        setCategories(categoriesData);
+        setCategories(categoriesData.filter(c => c.active));
       } catch (error) {
         console.error('Error fetching menu items:', error);
       } finally {
@@ -30,6 +35,14 @@ export default function MenuPage() {
     }
     fetchData();
   }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-celeste-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <>

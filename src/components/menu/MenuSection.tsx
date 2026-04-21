@@ -50,7 +50,13 @@ export function MenuSection({ category, products }: MenuSectionProps) {
         viewport={{ once: true }}
         className="flex items-center gap-4 mb-6"
       >
-        <span className="text-4xl">{category.icon}</span>
+        <div className="w-12 h-12 flex items-center justify-center text-4xl overflow-hidden rounded-xl">
+          {category.image_url ? (
+            <img src={category.thumbnail_url || category.image_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            category.icon
+          )}
+        </div>
         <div>
           <h2 className="heading-3 text-gray-900">{category.name}</h2>
           {category.description && (

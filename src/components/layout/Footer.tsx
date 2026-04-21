@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { Instagram, Phone, Mail, MapPin, Clock } from 'lucide-react';
-import { Logo } from '@/components/ui';
-import { restaurantSettings } from '@/data/menu';
+import { LogoMini } from '@/components/ui';
+import { useSettingsStore } from '@/store/settingsStore';
 
 export function Footer() {
+  const info = useSettingsStore(state => state.info);
   const currentYear = new Date().getFullYear();
 
   return (
@@ -13,38 +14,40 @@ export function Footer() {
       {/* Main Footer */}
       <div className="container-app py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Brand */}
-          <div className="lg:col-span-1">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-celeste-400 to-celeste-600 flex items-center justify-center">
-                <span className="font-logo text-white text-xl">C</span>
-              </div>
-              <div>
-                <h3 className="font-logo text-2xl text-celeste-400">La Celeste</h3>
-                <p className="text-xs text-gray-400">Hamburguesas</p>
-              </div>
-            </div>
+           {/* Brand */}
+           <div className="lg:col-span-1">
+             <div className="flex items-center gap-3 mb-4">
+               <LogoMini className="w-12 h-12" />
+               <div>
+                 <h3 className="font-logo text-2xl text-celeste-400">{info?.name || 'La Celeste'}</h3>
+                 <p className="text-xs text-gray-400">Hamburguesas</p>
+               </div>
+             </div>
             <p className="text-gray-400 text-sm mb-4">
               Las mejores hamburguesas artesanales de Barquisimeto. 
               Inspiradas en los sabores de Argentina 🇦🇷
             </p>
             <div className="flex gap-4">
-              <a
-                href={`https://instagram.com/${restaurantSettings.instagram.replace('@', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-pink-500 transition-colors"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href={`https://wa.me/${restaurantSettings.whatsapp}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-green-500 transition-colors"
-              >
-                <Phone className="w-5 h-5" />
-              </a>
+              {info?.instagram && (
+                <a
+                  href={`https://instagram.com/${info.instagram.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-pink-500 transition-colors"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+              )}
+              {info?.whatsapp && (
+                <a
+                  href={`https://wa.me/${info.whatsapp}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-green-500 transition-colors"
+                >
+                  <Phone className="w-5 h-5" />
+                </a>
+              )}
             </div>
           </div>
 
@@ -75,24 +78,30 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
-          <div>
-            <h4 className="font-semibold text-lg mb-4">Contacto</h4>
-            <ul className="space-y-3">
-              <li className="flex items-center gap-3 text-gray-400">
-                <Phone className="w-5 h-5 text-celeste-400" />
-                <span>{restaurantSettings.phone}</span>
-              </li>
-              <li className="flex items-center gap-3 text-gray-400">
-                <Instagram className="w-5 h-5 text-pink-400" />
-                <span>{restaurantSettings.instagram}</span>
-              </li>
-              <li className="flex items-center gap-3 text-gray-400">
-                <MapPin className="w-5 h-5 text-red-400" />
-                <span>{restaurantSettings.address}</span>
-              </li>
-            </ul>
-          </div>
+           {/* Contact */}
+           <div>
+             <h4 className="font-semibold text-lg mb-4">Contacto</h4>
+             <ul className="space-y-3">
+               {info?.phone && (
+                 <li className="flex items-center gap-3 text-gray-400">
+                   <Phone className="w-5 h-5 text-celeste-400" />
+                   <span>{info.phone}</span>
+                 </li>
+               )}
+               {info?.instagram && (
+                 <li className="flex items-center gap-3 text-gray-400">
+                   <Instagram className="w-5 h-5 text-pink-400" />
+                   <span>{info.instagram}</span>
+                 </li>
+               )}
+               {info?.address && (
+                 <li className="flex items-center gap-3 text-gray-400">
+                   <MapPin className="w-5 h-5 text-red-400" />
+                   <span>{info.address}</span>
+                 </li>
+               )}
+             </ul>
+           </div>
 
           {/* Schedule */}
           <div>
@@ -118,9 +127,9 @@ export function Footer() {
       <div className="border-t border-gray-700">
         <div className="container-app py-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-500 text-sm">
-              © {currentYear} La Celeste. Todos los derechos reservados.
-            </p>
+             <p className="text-gray-500 text-sm">
+               © {currentYear} {info?.name || 'La Celeste'}. Todos los derechos reservados.
+             </p>
             <div className="flex gap-6 text-sm">
               <Link href="/terminos" className="text-gray-500 hover:text-gray-300 transition-colors">
                 Términos y Condiciones
