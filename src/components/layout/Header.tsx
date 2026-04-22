@@ -26,6 +26,7 @@ export function Header() {
 
   const navLinks = [
     { href: '/', label: 'Inicio' },
+    { href: '/nosotros', label: 'Nosotros' },
     { href: '/menu', label: 'Menú' },
     { href: '/pedido', label: 'Hacer Pedido' },
     { href: '/contacto', label: 'Contacto' },

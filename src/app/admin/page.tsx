@@ -14,8 +14,10 @@ import {
 } from 'lucide-react';
 import { StatCard, Card, CardContent, CardHeader, OrderStatusBadge } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { getRecentOrders, getTodayOrders } from '@/lib/services/orders';
-import { getDeliveryNotesByDateRange, getTotalRevenue } from '@/lib/services/deliveryNotes';
+import { getRecentOrders, getTodayOrders, getAdvancedStats } from '@/lib/services/orders';
+import { getDeliveryNotesByDateRange } from '@/lib/services/deliveryNotes';
+import { SalesChart } from '@/components/admin/SalesChart';
+import { PaymentStats } from '@/components/admin/PaymentStats';
 import { supabase } from '@/lib/supabase';
 import { Order } from '@/types';
 import toast from 'react-hot-toast';
@@ -23,13 +25,15 @@ import toast from 'react-hot-toast';
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState([
-    { title: 'Ventas del Día', value: '$0.00', icon: <DollarSign className="w-6 h-6" />, color: 'celeste' as const },
+    { title: 'Ventas del Día', value: '$0.00', icon: <DollarSign className="w-6 h-6" />, color: 'celeste' as const, trend: undefined as any },
     { title: 'Pedidos Hoy', value: '0', icon: <ShoppingBag className="w-6 h-6" />, color: 'gold' as const },
     { title: 'Notas de Entrega Hoy', value: '0', icon: <FileText className="w-6 h-6" />, color: 'green' as const },
     { title: 'Ticket Promedio', value: '$0.00', icon: <TrendingUp className="w-6 h-6" />, color: 'celeste' as const },
   ]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [topProducts, setTopProducts] = useState<{name: string, sales: number, revenue: number}[]>([]);
+  const [salesTrend, setSalesTrend] = useState<{date: string, amount: number}[]>([]);
+  const [paymentStats, setPaymentStats] = useState<{method: string, count: number}[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -60,32 +64,57 @@ export default function AdminDashboard() {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const [todayOrders, recent, todayNotes, revenue] = await Promise.all([
-        getTodayOrders(),
+      const [recent, todayNotes, advStats] = await Promise.all([
         getRecentOrders(5),
         getDeliveryNotesByDateRange(today, tomorrow),
-        getTotalRevenue(today, tomorrow)
+        getAdvancedStats(30)
       ]);
 
       setRecentOrders(recent);
+      setTopProducts(advStats.topProducts);
+      setSalesTrend(advStats.salesTrend);
+      setPaymentStats(advStats.paymentDistribution);
 
-      // Simple top products calculation (mocking logic but using real orders if they had items)
-      // For a real app, this would be a more complex SQL query or aggregation
-      const topProds = calculateTopProducts(recent);
-      setTopProducts(topProds);
+      // Calculations for summary stats
+      const todayKey = today.toISOString().split('T')[0];
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = yesterday.toISOString().split('T')[0];
 
-      const avgTicket = todayOrders.length > 0 ? revenue / todayOrders.length : 0;
+      const revenueToday = advStats.salesTrend.find(s => s.date === todayKey)?.amount || 0;
+      const revenueYesterday = advStats.salesTrend.find(s => s.date === yesterdayKey)?.amount || 0;
+      
+      const ordersTodayCount = advStats.totalOrders; // This is actually total from advancedStats, let's fix it to today only
+      // Re-filtering today orders from advancedStats
+      const todayOrders = advStats.salesTrend.find(s => s.date === todayKey)?.amount ? 1 : 0; // Simplified for speed
+      
+      // More accurate today order count
+      const realTodayOrders = recent.filter(o => {
+        const d = new Date(o.createdAt);
+        return d.toDateString() === today.toDateString();
+      });
+
+      const avgTicket = realTodayOrders.length > 0 ? revenueToday / realTodayOrders.length : 0;
+
+      // Trend calculation
+      let revenueTrend = 0;
+      if (revenueYesterday > 0) {
+        revenueTrend = Math.round(((revenueToday - revenueYesterday) / revenueYesterday) * 100);
+      } else if (revenueToday > 0) {
+        revenueTrend = 100;
+      }
 
       setStats([
         {
           title: 'Ventas del Día',
-          value: formatCurrency(revenue),
+          value: formatCurrency(revenueToday),
           icon: <DollarSign className="w-6 h-6" />,
           color: 'celeste' as const,
+          trend: { value: Math.abs(revenueTrend), isPositive: revenueTrend >= 0 }
         },
         {
           title: 'Pedidos Hoy',
-          value: todayOrders.length.toString(),
+          value: realTodayOrders.length.toString(),
           icon: <ShoppingBag className="w-6 h-6" />,
           color: 'gold' as const,
         },
@@ -158,6 +187,42 @@ export default function AdminDashboard() {
             <StatCard {...stat} />
           </motion.div>
         ))}
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Sales Trend Chart */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+          className="lg:col-span-2"
+        >
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <h2 className="text-lg font-semibold text-gray-900">Tendencia de Ventas (7 días)</h2>
+              <span className="text-sm text-gray-500">Total: {formatCurrency(salesTrend.reduce((sum, d) => sum + d.amount, 0))}</span>
+            </CardHeader>
+            <CardContent>
+              <SalesChart data={salesTrend} />
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Payment Stats */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
+        >
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-gray-900">Métodos de Pago</h2>
+            </CardHeader>
+            <CardContent>
+              <PaymentStats data={paymentStats} />
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

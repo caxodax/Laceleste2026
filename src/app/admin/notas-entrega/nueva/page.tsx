@@ -19,7 +19,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button, Input, Textarea, Select, Card, CardContent, CardHeader } from '@/components/ui';
-import { formatCurrency, generateNoteNumber } from '@/lib/utils';
+import { formatCurrency, formatBs, generateNoteNumber } from '@/lib/utils';
+import { useSettingsStore } from '@/store/settingsStore';
 import { products, paymentMethods, restaurantSettings } from '@/data/menu';
 import { createDeliveryNote } from '@/lib/services/deliveryNotes';
 import toast from 'react-hot-toast';
@@ -44,6 +45,7 @@ interface DeliveryNoteItem {
 
 export default function NuevaNotaEntregaPage() {
   const router = useRouter();
+  const { info, bcvRate } = useSettingsStore();
   const [items, setItems] = useState<DeliveryNoteItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -59,8 +61,10 @@ export default function NuevaNotaEntregaPage() {
 
   // Cálculos
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const tax = subtotal * restaurantSettings.taxRate;
+  const taxRate = info?.showTax ? (info?.taxRate || 0) : 0;
+  const tax = subtotal * taxRate;
   const total = subtotal + tax;
+  const totalBs = bcvRate ? total * bcvRate : 0;
 
   const addItem = () => {
     if (!selectedProduct) {
@@ -380,6 +384,12 @@ export default function NuevaNotaEntregaPage() {
                     <span className="font-semibold">Total</span>
                     <span className="font-bold text-celeste-600">{formatCurrency(total)}</span>
                   </div>
+                  {(info?.showBs && totalBs > 0) && (
+                    <div className="flex justify-between items-center p-3 bg-celeste-50 rounded-xl border border-celeste-100 mt-2">
+                      <span className="text-xs font-bold text-celeste-700 uppercase">Equivalente en Bs.</span>
+                      <span className="font-bold text-celeste-700">{formatBs(totalBs)}</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

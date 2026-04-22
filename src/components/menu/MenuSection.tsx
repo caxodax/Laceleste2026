@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MenuCard } from '@/components/ui';
 import { Product, Category } from '@/types';
 import { useCartStore } from '@/store/cartStore';
+import { ProductDetailModal } from './ProductDetailModal';
 import toast from 'react-hot-toast';
 
 interface MenuSectionProps {
@@ -13,10 +15,12 @@ interface MenuSectionProps {
 
 export function MenuSection({ category, products }: MenuSectionProps) {
   const addItem = useCartStore((state) => state.addItem);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleAddToCart = (product: Product) => {
-    addItem(product, 1);
-    toast.success(`${product.name} agregado al carrito`, {
+  const handleAddToCart = (product: Product, quantity = 1) => {
+    addItem(product, quantity);
+    toast.success(`${quantity > 1 ? quantity + ' ' : ''}${product.name} agregado al carrito`, {
       icon: '🍔',
       style: {
         borderRadius: '12px',
@@ -24,6 +28,11 @@ export function MenuSection({ category, products }: MenuSectionProps) {
         color: '#fff',
       },
     });
+  };
+
+  const handleOpenModal = (product: Product) => {
+    setSelectedProduct(product);
+    setIsModalOpen(true);
   };
 
   const containerVariants = {
@@ -83,10 +92,18 @@ export function MenuSection({ category, products }: MenuSectionProps) {
               badge={product.featured ? '⭐ Popular' : undefined}
               available={product.available}
               onAddToCart={() => handleAddToCart(product)}
+              onClick={() => handleOpenModal(product)}
             />
           </motion.div>
         ))}
       </motion.div>
+
+      <ProductDetailModal
+        product={selectedProduct}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddToCart={handleAddToCart}
+      />
     </section>
   );
 }

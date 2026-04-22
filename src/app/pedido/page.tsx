@@ -23,7 +23,8 @@ import { Header, Footer, WhatsAppButton } from '@/components/layout';
 import { Button, Input, Textarea, Select, Card, CardContent } from '@/components/ui';
 import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { formatCurrency, getWhatsAppLink } from '@/lib/utils';
+import { formatCurrency, formatBs, getWhatsAppLink } from '@/lib/utils';
+import { restaurantSettings } from '@/data/menu';
 import toast from 'react-hot-toast';
 
 interface OrderFormData {
@@ -37,7 +38,7 @@ interface OrderFormData {
 }
 
 export default function PedidoPage() {
-  const { info, initialized } = useSettingsStore();
+  const { info, bcvRate, initialized } = useSettingsStore();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
@@ -58,9 +59,10 @@ export default function PedidoPage() {
   });
 
   const deliveryType = watch('deliveryType');
-  const deliveryFee = (deliveryType === 'delivery' && info?.showDelivery) ? (info?.deliveryFee || 0) : 0;
-  const tax = info?.showTax ? (subtotal * (info?.taxRate || 0)) : 0;
+  const deliveryFee = (deliveryType === 'delivery' && (info?.showDelivery ?? restaurantSettings.showDelivery)) ? (info?.deliveryFee ?? restaurantSettings.deliveryFee ?? 0) : 0;
+  const tax = (info?.showTax ?? restaurantSettings.showTax) ? (subtotal * (info?.taxRate ?? restaurantSettings.taxRate ?? 0)) : 0;
   const total = subtotal + tax + deliveryFee;
+  const totalBs = bcvRate ? total * bcvRate : 0;
 
   const onSubmit = async (data: OrderFormData) => {
     if (items.length === 0) {
@@ -75,11 +77,11 @@ export default function PedidoPage() {
       .map((item) => `• ${item.quantity}x ${item.product.name} - ${formatCurrency(item.product.price * item.quantity)}`)
       .join('\n');
 
-    const paymentMethodsList = info?.paymentMethods || [];
+    const paymentMethodsList = info?.paymentMethods?.length ? info.paymentMethods : restaurantSettings.paymentMethods;
     const paymentInfo = paymentMethodsList.find((m) => m.id === data.paymentMethod);
 
     const message = `
-🍔 *NUEVO PEDIDO - ${info?.name || 'LA CELESTE'}*
+🍔 *NUEVO PEDIDO - ${info?.name || restaurantSettings.name || 'LA CELESTE'}*
 
 👤 *Cliente:* ${data.customerName}
 📱 *Teléfono:* ${data.customerPhone}
@@ -93,9 +95,10 @@ ${itemsList}
 
 💰 *RESUMEN:*
 Subtotal: ${formatCurrency(subtotal)}
-${tax > 0 ? `IVA (${(info?.taxRate || 0) * 100}%): ${formatCurrency(tax)}` : ''}
+${tax > 0 ? `IVA (${(info?.taxRate ?? restaurantSettings.taxRate ?? 0) * 100}%): ${formatCurrency(tax)}` : ''}
 ${deliveryFee > 0 ? `Delivery: ${formatCurrency(deliveryFee)}` : ''}
 *TOTAL: ${formatCurrency(total)}*
+${((info?.showBs ?? restaurantSettings.showBs) && totalBs > 0) ? `*TOTAL BS: ${formatBs(totalBs)}* (Tasa: ${bcvRate})` : ''}
 
 💳 *Método de pago:* ${paymentInfo?.name || data.paymentMethod}
 
@@ -105,7 +108,7 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
     `.trim();
 
     // Abrir WhatsApp
-    const whatsappLink = getWhatsAppLink(info?.whatsapp || '584245645357', message);
+    const whatsappLink = getWhatsAppLink(info?.whatsapp || restaurantSettings.whatsapp || '584245645357', message);
     window.open(whatsappLink, '_blank');
 
     setIsSubmitting(false);
@@ -171,6 +174,7 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
               className="text-center"
             >
               <h1 className="heading-2 text-white mb-2">Finalizar Pedido</h1>
@@ -216,6 +220,7 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
                   >
                     <Card>
                       <CardContent className="p-6">
@@ -309,6 +314,7 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
                   >
                     <Card>
                       <CardContent className="p-6">
@@ -381,7 +387,7 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                                 <div>
                                   <span className="font-medium">Delivery</span>
                                   <p className="text-sm text-gray-500">
-                                    {info?.showDelivery ? formatCurrency(info?.deliveryFee || 0) : 'Gratis'}
+                                    {(info?.showDelivery ?? restaurantSettings.showDelivery) ? formatCurrency(info?.deliveryFee ?? restaurantSettings.deliveryFee ?? 0) : 'Gratis'}
                                   </p>
                                 </div>
                               </label>
@@ -419,6 +425,7 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
                   >
                     <Card>
                       <CardContent className="p-6">
@@ -428,7 +435,7 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                         </h2>
 
                         <div className="space-y-3">
-                          {(info?.paymentMethods || []).filter(m => m.active).map((method) => (
+                          {((info?.paymentMethods?.length ? info.paymentMethods : restaurantSettings.paymentMethods) || []).filter(m => m.active).map((method) => (
                             <label
                               key={method.id}
                               className="flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer hover:border-celeste-300 transition-all"
@@ -502,6 +509,17 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                         <span className="font-semibold">Total</span>
                         <span className="font-bold text-celeste-600">{formatCurrency(total)}</span>
                       </div>
+                      {(info?.showBs !== false && totalBs > 0) && (
+                        <div className="flex flex-col p-3 bg-celeste-50 rounded-xl border border-celeste-100 mt-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-celeste-700 uppercase">Total en Bs.</span>
+                            <span className="font-bold text-celeste-700">{formatBs(totalBs)}</span>
+                          </div>
+                          <div className="mt-1 text-[10px] text-celeste-600/70 text-right">
+                            Tasa BCV: 1$ = {formatBs(bcvRate || 0, false)}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Items preview */}

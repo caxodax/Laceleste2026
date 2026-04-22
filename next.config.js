@@ -2,9 +2,21 @@
 const nextConfig = {
   // output: 'export', // Comentado para permitir Server Actions y rutas dinámicas
   images: {
-    unoptimized: true, // Necesario para export estático
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ttglahstbeogwzqlmhkj.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
   },
   trailingSlash: true,
+  reactCompiler: true,
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },

@@ -109,9 +109,16 @@ export interface RestaurantSettings {
   showTax: boolean;
   deliveryFee: number;
   showDelivery: boolean;
+  minOrderDelivery: number;
+  schedule: {
+    [key: string]: { open: string; close: string; closed?: boolean };
+  };
   paymentMethods: PaymentMethod[];
   currency: string;
   currencySymbol: string;
+  showBs: boolean;
+  useManualRate: boolean;
+  manualRate: number;
 }
 
 export interface HeroSettings {

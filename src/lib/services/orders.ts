@@ -132,17 +132,65 @@ function mapOrderFromDB(record: any): Order {
     deliveryType: record.delivery_type,
     paymentMethod: record.payment_method,
     status: record.status,
-    subtotal: record.subtotal,
-    tax: record.tax,
-    deliveryFee: record.delivery_fee,
-    total: record.total,
+    subtotal: Number(record.subtotal),
+    tax: Number(record.tax),
+    deliveryFee: Number(record.delivery_fee),
+    total: Number(record.total),
     notes: record.notes,
     createdAt: new Date(record.created_at),
     updatedAt: new Date(record.updated_at),
-    items: record.order_items.map((item: any) => ({
-      product: { id: item.product_id, price: item.unit_price } as any, // Full product info might be needed if UI expects it
+    items: (record.order_items || []).map((item: any) => ({
+      product: { id: item.product_id, name: item.products?.name, price: Number(item.unit_price) } as any,
       quantity: item.quantity,
       notes: item.notes,
     })),
+  };
+}
+
+export async function getAdvancedStats(days: number = 30) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('*, order_items(*, products(name))')
+    .gte('created_at', startDate.toISOString())
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+
+  const mappedOrders = orders.map(mapOrderFromDB);
+  
+  // 1. Sales by Day
+  const salesByDay: Record<string, number> = {};
+  // 2. Top Products
+  const productStats: Record<string, { name: string, sales: number, revenue: number }> = {};
+  // 3. Payment Methods
+  const paymentMethodStats: Record<string, number> = {};
+
+  mappedOrders.forEach(order => {
+    if (order.status === 'cancelled') return;
+
+    const dayKey = order.createdAt.toISOString().split('T')[0];
+    salesByDay[dayKey] = (salesByDay[dayKey] || 0) + order.total;
+
+    paymentMethodStats[order.paymentMethod] = (paymentMethodStats[order.paymentMethod] || 0) + 1;
+
+    order.items.forEach(item => {
+      const pId = item.product.id;
+      if (!productStats[pId]) {
+        productStats[pId] = { name: item.product.name, sales: 0, revenue: 0 };
+      }
+      productStats[pId].sales += item.quantity;
+      productStats[pId].revenue += (item.product.price * item.quantity);
+    });
+  });
+
+  return {
+    salesTrend: Object.entries(salesByDay).map(([date, amount]) => ({ date, amount })),
+    topProducts: Object.values(productStats).sort((a, b) => b.revenue - a.revenue).slice(0, 5),
+    paymentDistribution: Object.entries(paymentMethodStats).map(([method, count]) => ({ method, count })),
+    totalOrders: mappedOrders.length,
+    totalRevenue: mappedOrders.reduce((sum, o) => o.status !== 'cancelled' ? sum + o.total : sum, 0),
   };
 }

@@ -3,14 +3,23 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Header, Footer, WhatsAppButton } from '@/components/layout';
-import { MenuSection, CategoryNav } from '@/components/menu';
+import { MenuSection, CategoryNav, SearchInput, MenuCardSkeleton } from '@/components/menu';
+import { Button } from '@/components/ui';
+import { Metadata } from 'next';
 import { getProducts, getCategories } from '@/lib/services/products';
 import { Product, Category } from '@/types';
 import { Loader2 } from 'lucide-react';
 
+export const metadata: Metadata = {
+  title: 'Nuestro Menú | Hamburguesas, Tequeños y Más',
+  description: 'Explora el menú de La Celeste. Hamburguesas artesanales, tequeños venezolanos, combos y postres. ¡Haz tu pedido por WhatsApp hoy mismo!',
+};
+
 export default function MenuPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -35,6 +44,11 @@ export default function MenuPage() {
     }
     fetchData();
   }, []);
+
+  const allCategories = [
+    { id: 'all', name: 'Todas', icon: '🍽️', active: true },
+    ...categories
+  ] as Category[];
 
   if (!isMounted) {
     return (
@@ -66,37 +80,85 @@ export default function MenuPage() {
         </section>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24">
-            <Loader2 className="w-10 h-10 text-celeste-600 animate-spin mb-4" />
-            <p className="text-gray-500 font-medium">Cargando nuestro delicioso menú...</p>
+          <div className="container-app py-16">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <MenuCardSkeleton key={i} />
+              ))}
+            </div>
           </div>
         ) : (
           <>
-            {/* Category Navigation */}
-            <CategoryNav categories={categories} />
+            <div className="py-8 bg-cream-50/50">
+              <SearchInput value={searchQuery} onChange={setSearchQuery} />
+              
+              {/* Category Navigation */}
+              <CategoryNav 
+                categories={allCategories} 
+                activeCategory={activeCategory}
+                onCategoryChange={setActiveCategory}
+              />
+            </div>
 
             {/* Menu Sections */}
             <div className="container-app py-8">
-              {categories.map((category) => {
-                const categoryProducts = products.filter(
-                  (p) => p.category === category.id
-                );
-                if (categoryProducts.length === 0) return null;
-                
-                // Map products to include thumbnail fallback
-                const optimizedProducts = categoryProducts.map(p => ({
-                  ...p,
-                  image: p.thumbnail || p.image
-                }));
+              {categories
+                .filter(cat => activeCategory === 'all' || cat.id === activeCategory)
+                .map((category) => {
+                  const filteredProducts = products.filter(p => {
+                    const matchesCategory = p.category === category.id;
+                    const matchesSearch = searchQuery === '' || 
+                      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+                    return matchesCategory && matchesSearch;
+                  });
 
-                return (
-                  <MenuSection
-                    key={category.id}
-                    category={category}
-                    products={optimizedProducts}
-                  />
-                );
-              })}
+                  if (filteredProducts.length === 0) return null;
+                  
+                  // Map products to include thumbnail fallback
+                  const optimizedProducts = filteredProducts.map(p => ({
+                    ...p,
+                    image: p.thumbnail || p.image
+                  }));
+
+                  return (
+                    <MenuSection
+                      key={category.id}
+                      category={category}
+                      products={optimizedProducts}
+                    />
+                  );
+                })}
+
+              {/* No results message */}
+              {products.length > 0 && categories.filter(cat => activeCategory === 'all' || cat.id === activeCategory).every(cat => 
+                products.filter(p => {
+                  const matchesCategory = p.category === cat.id;
+                  const matchesSearch = searchQuery === '' || 
+                    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+                  return matchesCategory && matchesSearch;
+                }).length === 0
+              ) && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-16"
+                >
+                  <p className="text-xl text-gray-500 mb-2">No encontramos resultados para "{searchQuery}"</p>
+                  <p className="text-gray-400">Intenta con otros términos o cambia de categoría</p>
+                  <Button 
+                    variant="ghost" 
+                    className="mt-4 text-celeste-600"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setActiveCategory('all');
+                    }}
+                  >
+                    Borrar búsqueda
+                  </Button>
+                </motion.div>
+              )}
             </div>
           </>
         )}

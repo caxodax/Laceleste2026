@@ -13,6 +13,14 @@ export function formatCurrency(amount: number, currency = 'USD'): string {
   }).format(amount);
 }
 
+export function formatBs(amount: number, showSymbol = true): string {
+  return new Intl.NumberFormat('es-VE', {
+    style: showSymbol ? 'currency' : 'decimal',
+    currency: 'VES',
+    minimumFractionDigits: 2,
+  }).format(amount) + (showSymbol ? '' : ' Bs.');
+}
+
 export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return new Intl.DateTimeFormat('es-VE', {

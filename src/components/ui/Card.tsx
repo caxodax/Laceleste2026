@@ -1,7 +1,9 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { ReactNode, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import { Skeleton } from './Skeleton';
 import { cn } from '@/lib/utils';
 
 interface CardProps {
@@ -91,6 +93,7 @@ interface MenuCardProps {
   price: number;
   badge?: string;
   onAddToCart?: () => void;
+  onClick?: () => void;
   available?: boolean;
 }
 
@@ -101,12 +104,16 @@ export function MenuCard({
   price,
   badge,
   onAddToCart,
+  onClick,
   available = true,
 }: MenuCardProps) {
+  const [isImageLoading, setIsImageLoading] = useState(true);
   return (
     <motion.div
+      onClick={onClick}
       className={cn(
         'card-hover p-4 flex flex-col h-full relative overflow-hidden',
+        onClick && 'cursor-pointer',
         !available && 'opacity-60'
       )}
       initial={{ opacity: 0, scale: 0.95 }}
@@ -122,21 +129,40 @@ export function MenuCard({
       )}
 
       {/* Imagen */}
-      <div className="relative w-full h-40 mb-4 rounded-xl overflow-hidden bg-gray-100">
+      <div className="relative w-full h-40 mb-4 rounded-xl overflow-hidden bg-gray-100 group">
         {image ? (
-          <img
-            src={image}
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          />
+          <>
+            <Image
+              src={image}
+              alt={title}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              onLoadingComplete={() => setIsImageLoading(false)}
+            />
+            <AnimatePresence>
+              {isImageLoading && (
+                <motion.div
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0 z-10"
+                >
+                  <Skeleton className="w-full h-full rounded-none" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-6xl">
             🍔
           </div>
         )}
         {!available && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white font-semibold">No disponible</span>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-20">
+            <span className="text-white font-bold text-sm bg-black/50 px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-md">
+              No disponible
+            </span>
           </div>
         )}
       </div>
@@ -154,8 +180,11 @@ export function MenuCard({
         </span>
         {available && onAddToCart && (
           <motion.button
-            onClick={onAddToCart}
-            className="p-2 bg-celeste-500 text-white rounded-lg hover:bg-celeste-600 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToCart();
+            }}
+            className="p-2 bg-celeste-500 text-white rounded-lg hover:bg-celeste-600 transition-colors z-30"
             whileTap={{ scale: 0.95 }}
           >
             <svg

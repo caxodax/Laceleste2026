@@ -384,9 +384,14 @@ export const restaurantSettings: RestaurantSettings = {
     domingo: { open: '17:00', close: '00:00' },
   },
   taxRate: 0.16, // 16% IVA
+  showTax: true,
   deliveryFee: 2.00,
+  showDelivery: true,
   minOrderDelivery: 10.00,
   paymentMethods,
   currency: 'USD',
   currencySymbol: '$',
+  showBs: true,
+  useManualRate: false,
+  manualRate: 36.5,
 };

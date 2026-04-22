@@ -3,24 +3,17 @@
 import { motion } from 'framer-motion';
 import { 
   Phone, 
-  Mail, 
   MapPin, 
   Clock, 
   Instagram, 
-  MessageCircle,
-  Send
+  MessageCircle
 } from 'lucide-react';
 import { Header, Footer, WhatsAppButton } from '@/components/layout';
-import { Button, Input, Textarea, Card, CardContent } from '@/components/ui';
+import { Button, Card, CardContent } from '@/components/ui';
 import { restaurantSettings } from '@/data/menu';
 import { getWhatsAppLink } from '@/lib/utils';
-import toast from 'react-hot-toast';
 
 export default function ContactoPage() {
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Mensaje enviado. ¡Te contactaremos pronto!');
-  };
 
   const contactInfo = [
     {
@@ -55,12 +48,7 @@ export default function ContactoPage() {
 
   const schedule = [
     { day: 'Lunes', hours: 'Cerrado', closed: true },
-    { day: 'Martes', hours: '5:00 PM - 12:00 AM' },
-    { day: 'Miércoles', hours: '5:00 PM - 12:00 AM' },
-    { day: 'Jueves', hours: '5:00 PM - 12:00 AM' },
-    { day: 'Viernes', hours: '5:00 PM - 12:00 AM' },
-    { day: 'Sábado', hours: '5:00 PM - 12:00 AM' },
-    { day: 'Domingo', hours: '5:00 PM - 12:00 AM' },
+    { day: 'Martes a Domingo', hours: '5:00 PM - 12:00 AM' },
   ];
 
   return (
@@ -86,49 +74,24 @@ export default function ContactoPage() {
 
         <div className="container-app py-16">
           <div className="grid lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
+            {/* Map Section */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Card>
-                <CardContent className="p-8">
-                  <h2 className="heading-3 text-gray-900 mb-6">Envíanos un mensaje</h2>
-                  
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <Input
-                        label="Nombre"
-                        placeholder="Tu nombre"
-                        required
-                      />
-                      <Input
-                        label="Teléfono"
-                        placeholder="0412-1234567"
-                        required
-                      />
-                    </div>
-                    <Input
-                      label="Email"
-                      type="email"
-                      placeholder="tu@email.com"
-                    />
-                    <Textarea
-                      label="Mensaje"
-                      placeholder="¿En qué podemos ayudarte?"
-                      required
-                    />
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="lg"
-                      fullWidth
-                      icon={<Send className="w-5 h-5" />}
-                    >
-                      Enviar Mensaje
-                    </Button>
-                  </form>
+              <Card className="h-full overflow-hidden">
+                <CardContent className="p-0 h-full min-h-[450px]">
+                  <iframe 
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3928.2859631310166!2d-69.29971862423683!3d10.075638671727194!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e8767006e9be2e5%3A0x64980fa2ae3f4c14!2sLa%20Celeste!5e0!3m2!1ses!2sve!4v1776873199145!5m2!1ses!2sve" 
+                    width="100%" 
+                    height="100%" 
+                    style={{ border: 0, minHeight: '450px' }} 
+                    allowFullScreen={true} 
+                    loading="lazy" 
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Ubicación de La Celeste"
+                  ></iframe>
                 </CardContent>
               </Card>
             </motion.div>
@@ -189,58 +152,9 @@ export default function ContactoPage() {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Quick Actions */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <a
-                  href={getWhatsAppLink(restaurantSettings.whatsapp, '¡Hola! Quiero hacer un pedido 🍔')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="primary" fullWidth size="lg" className="bg-green-500 hover:bg-green-600">
-                    <MessageCircle className="w-5 h-5 mr-2" />
-                    WhatsApp
-                  </Button>
-                </a>
-                <a
-                  href={`https://instagram.com/${restaurantSettings.instagram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="secondary" fullWidth size="lg">
-                    <Instagram className="w-5 h-5 mr-2" />
-                    Instagram
-                  </Button>
-                </a>
-              </div>
             </motion.div>
           </div>
         </div>
-
-        {/* Map Section (Placeholder) */}
-        <section className="bg-gray-100 py-16">
-          <div className="container-app">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-8"
-            >
-              <h2 className="heading-3 text-gray-900 mb-2">Encuéntranos</h2>
-              <p className="text-gray-600">{restaurantSettings.address}</p>
-            </motion.div>
-            
-            <div className="aspect-video bg-gray-200 rounded-2xl overflow-hidden flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Mapa de ubicación</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Integra Google Maps aquí
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
       <Footer />

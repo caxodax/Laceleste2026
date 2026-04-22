@@ -27,20 +27,9 @@ const textSizes = {
 
 export function Logo({ size = 'md', showText = true, className, animated = true }: LogoProps) {
   const info = useSettingsStore(state => state.info);
-  const Wrapper = animated ? motion.div : 'div';
-  const animationProps = animated
-    ? {
-        initial: { scale: 0.8, opacity: 0 },
-        animate: { scale: 1, opacity: 1 },
-        transition: { duration: 0.5, ease: 'easeOut' },
-      }
-    : {};
-
-  return (
-    <Wrapper
-      className={cn('flex items-center gap-3', className)}
-      {...animationProps}
-    >
+  
+  const content = (
+    <>
       {/* Logo Icon */}
       <div
         className={cn(
@@ -86,7 +75,28 @@ export function Logo({ size = 'md', showText = true, className, animated = true 
           </span>
         </div>
       )}
-    </Wrapper>
+    </>
+  );
+
+  const containerClassName = cn('flex items-center gap-3', className);
+
+  if (animated) {
+    return (
+      <motion.div
+        className={containerClassName}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      >
+        {content}
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className={containerClassName}>
+      {content}
+    </div>
   );
 }
 

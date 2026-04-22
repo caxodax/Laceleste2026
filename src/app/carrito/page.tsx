@@ -6,14 +6,17 @@ import { ShoppingBag, Minus, Plus, Trash2, ArrowRight, ArrowLeft } from 'lucide-
 import { Header, Footer, WhatsAppButton } from '@/components/layout';
 import { Button, Card, CardContent } from '@/components/ui';
 import { useCartStore } from '@/store/cartStore';
-import { formatCurrency } from '@/lib/utils';
+import { useSettingsStore } from '@/store/settingsStore';
+import { formatCurrency, formatBs } from '@/lib/utils';
 import { restaurantSettings } from '@/data/menu';
 
 export default function CarritoPage() {
+  const { info, bcvRate } = useSettingsStore();
   const { items, updateQuantity, removeItem, getSubtotal, clearCart } = useCartStore();
   const subtotal = getSubtotal();
-  const tax = subtotal * restaurantSettings.taxRate;
+  const tax = info?.showTax ? subtotal * (info?.taxRate || 0) : 0;
   const total = subtotal + tax;
+  const totalBs = bcvRate ? total * bcvRate : 0;
 
   return (
     <>
@@ -192,6 +195,17 @@ export default function CarritoPage() {
                             {formatCurrency(total)}
                           </span>
                         </div>
+                        {(info?.showBs !== false && totalBs > 0) && (
+                          <div className="flex flex-col p-3 bg-celeste-50 rounded-xl border border-celeste-100 mt-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-bold text-celeste-700 uppercase">Total en Bs.</span>
+                              <span className="font-bold text-celeste-700">{formatBs(totalBs)}</span>
+                            </div>
+                            <div className="mt-1 text-[10px] text-celeste-600/70 text-right">
+                              Tasa BCV: 1$ = {formatBs(bcvRate || 0, false)}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="mt-6 space-y-3">
@@ -218,12 +232,12 @@ export default function CarritoPage() {
                     <CardContent className="p-4">
                       <p className="text-sm text-gray-600 mb-3">Métodos de pago aceptados:</p>
                       <div className="flex flex-wrap gap-2">
-                        {restaurantSettings.paymentMethods.map((method) => (
+                        {((info?.paymentMethods?.length ? info.paymentMethods : restaurantSettings.paymentMethods) || []).filter(m => m.active).map((method) => (
                           <span
                             key={method.id}
                             className="px-3 py-1 bg-gray-100 rounded-full text-sm"
                           >
-                            {method.icon} {method.name}
+                            {method.name}
                           </span>
                         ))}
                       </div>

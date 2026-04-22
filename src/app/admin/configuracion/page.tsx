@@ -249,53 +249,98 @@ export default function ConfiguracionPage() {
             
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Finanzas y Entrega</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 text-celeste-600">Finanzas y Entrega</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <div>
-                        <p className="font-semibold text-gray-900">Aplicar IVA</p>
-                        <p className="text-sm text-gray-500">¿Cobrar impuesto en pedidos?</p>
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                          <p className="font-semibold text-gray-900">Aplicar IVA</p>
+                          <p className="text-sm text-gray-500">¿Cobrar impuesto en pedidos?</p>
+                        </div>
+                        <button 
+                          onClick={() => setGeneral({ ...general, showTax: !general.showTax })}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${general.showTax ? 'bg-celeste-500' : 'bg-gray-300'}`}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${general.showTax ? 'left-7' : 'left-1'}`} />
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => setGeneral({ ...general, showTax: !general.showTax })}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${general.showTax ? 'bg-celeste-500' : 'bg-gray-300'}`}
-                      >
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${general.showTax ? 'left-7' : 'left-1'}`} />
-                      </button>
+                      {general.showTax && (
+                        <Input 
+                          label="Tasa de IVA (0.16 = 16%)" 
+                          type="number" 
+                          step="0.01" 
+                          value={general.taxRate} 
+                          onChange={e => setGeneral({ ...general, taxRate: parseFloat(e.target.value) })} 
+                        />
+                      )}
                     </div>
-                    {general.showTax && (
-                      <Input 
-                        label="Tasa de IVA (0.16 = 16%)" 
-                        type="number" 
-                        step="0.01" 
-                        value={general.taxRate} 
-                        onChange={e => setGeneral({ ...general, taxRate: parseFloat(e.target.value) })} 
-                      />
-                    )}
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                          <p className="font-semibold text-gray-900">Mostrar Precios en Bs.</p>
+                          <p className="text-sm text-gray-500">¿Mostrar conversión según BCV?</p>
+                        </div>
+                        <button 
+                          onClick={() => setGeneral({ ...general, showBs: !general.showBs })}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${general.showBs ? 'bg-celeste-500' : 'bg-gray-300'}`}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${general.showBs ? 'left-7' : 'left-1'}`} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <div>
-                        <p className="font-semibold text-gray-900">Cobrar Delivery</p>
-                        <p className="text-sm text-gray-500">¿Cargo extra por envío?</p>
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                          <p className="font-semibold text-gray-900">Cobrar Delivery</p>
+                          <p className="text-sm text-gray-500">¿Cargo extra por envío?</p>
+                        </div>
+                        <button 
+                          onClick={() => setGeneral({ ...general, showDelivery: !general.showDelivery })}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${general.showDelivery ? 'bg-celeste-500' : 'bg-gray-300'}`}
+                        >
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${general.showDelivery ? 'left-7' : 'left-1'}`} />
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => setGeneral({ ...general, showDelivery: !general.showDelivery })}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${general.showDelivery ? 'bg-celeste-500' : 'bg-gray-300'}`}
-                      >
-                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${general.showDelivery ? 'left-7' : 'left-1'}`} />
-                      </button>
+                      {general.showDelivery && (
+                        <Input 
+                          label="Costo de Delivery ($)" 
+                          type="number" 
+                          step="0.01" 
+                          value={general.deliveryFee} 
+                          onChange={e => setGeneral({ ...general, deliveryFee: parseFloat(e.target.value) })} 
+                        />
+                      )}
                     </div>
-                    {general.showDelivery && (
-                      <Input 
-                        label="Costo de Delivery ($)" 
-                        type="number" 
-                        step="0.01" 
-                        value={general.deliveryFee} 
-                        onChange={e => setGeneral({ ...general, deliveryFee: parseFloat(e.target.value) })} 
-                      />
+
+                    {general.showBs && (
+                      <div className="space-y-4 pt-4 border-t border-gray-100">
+                        <div className="flex items-center justify-between p-4 bg-celeste-50/50 rounded-xl border border-celeste-100">
+                          <div>
+                            <p className="font-semibold text-gray-900">Usar Tasa Manual</p>
+                            <p className="text-sm text-gray-500">Ignorar API y usar valor fijo</p>
+                          </div>
+                          <button 
+                            onClick={() => setGeneral({ ...general, useManualRate: !general.useManualRate })}
+                            className={`w-12 h-6 rounded-full transition-colors relative ${general.useManualRate ? 'bg-celeste-500' : 'bg-gray-300'}`}
+                          >
+                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${general.useManualRate ? 'left-7' : 'left-1'}`} />
+                          </button>
+                        </div>
+                        {general.useManualRate && (
+                          <Input 
+                            label="Tasa de Cambio Manual (Bs/$)" 
+                            type="number" 
+                            step="0.01" 
+                            value={general.manualRate} 
+                            onChange={e => setGeneral({ ...general, manualRate: parseFloat(e.target.value) })} 
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
