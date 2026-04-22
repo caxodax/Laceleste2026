@@ -35,6 +35,11 @@ export const metadata: Metadata = {
     locale: 'es_VE',
     type: 'website',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'La Celeste',
+  },
   twitter: {
     card: 'summary_large_image',
     title: 'La Celeste - Hamburguesas Artesanales',
@@ -62,7 +67,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-cream-50" suppressHydrationWarning>
         <AppInit>
