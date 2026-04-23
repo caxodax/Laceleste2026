@@ -52,7 +52,7 @@ export const upsertCustomer = async (customer: Partial<Customer>): Promise<Custo
   } as Customer;
 };
 
-export const addPointsToCustomer = async (idCard: string, points: number): Promise<void> => {
+export const addPointsToCustomer = async (idCard: string): Promise<void> => {
   const { data: current, error: fetchError } = await supabase
     .from('customers')
     .select('points')
@@ -61,7 +61,7 @@ export const addPointsToCustomer = async (idCard: string, points: number): Promi
 
   if (fetchError) throw fetchError;
 
-  const newPoints = (current?.points || 0) + points;
+  const newPoints = (current?.points || 0) + 1;
 
   const { error } = await supabase
     .from('customers')

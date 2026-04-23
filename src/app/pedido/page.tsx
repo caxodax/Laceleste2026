@@ -75,7 +75,13 @@ export default function PedidoPage() {
           setValue('customerName', customer.name);
           if (customer.phone) setValue('customerPhone', customer.phone);
           if (customer.email) setValue('customerEmail', customer.email);
-          toast.success(`¡Hola de nuevo, ${customer.name.split(' ')[0]}! Tienes ${customer.points} puntos acumulados.`);
+          
+          const points = customer.points % 10;
+          if (customer.points > 0 && customer.points % 10 === 0) {
+            toast.success(`¡Felicidades ${customer.name.split(' ')[0]}! Tienes una hamburguesa GRATIS acumulada.`, { duration: 5000 });
+          } else {
+            toast.success(`¡Hola ${customer.name.split(' ')[0]}! Llevas ${points}/10 puntos para tu hamburguesa gratis.`);
+          }
         }
       });
     }
@@ -124,8 +130,8 @@ export default function PedidoPage() {
         notes: data.notes
       });
 
-      // 3. Loyalty: Credit points (1 point per dollar)
-      await addPointsToCustomer(data.customerIdCard, Math.floor(total));
+      // 3. Loyalty: Credit 1 point per order
+      await addPointsToCustomer(data.customerIdCard);
 
       // 4. If table order, update table status
       if (tableId && data.deliveryType === 'table') {
