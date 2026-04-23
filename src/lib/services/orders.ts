@@ -194,6 +194,35 @@ export async function reopenTableAccount(tableId: string): Promise<void> {
   await updateTableStatus(tableId, 'busy');
 }
 
+// New: Update preparation status for an order
+export async function updateOrderPreparationStatus(orderId: string, status: 'pending' | 'confirmed' | 'served'): Promise<void> {
+  const { error } = await supabase
+    .from('orders')
+    .update({ status: status === 'served' ? 'confirmed' : status, preparation_status: status, updated_at: new Date().toISOString() })
+    .eq('id', orderId);
+
+  if (error) throw error;
+}
+
+// New: Request final billing with payment method
+export async function requestTableBilling(tableId: string, paymentMethod: string): Promise<void> {
+  const { error } = await supabase
+    .from('orders')
+    .update({ 
+      status: 'billing', 
+      payment_method: paymentMethod, 
+      updated_at: new Date().toISOString() 
+    })
+    .eq('table_id', tableId)
+    .in('status', ['pending', 'confirmed']);
+
+  if (error) throw error;
+  
+  // Also notify table status
+  const { updateTableStatus } = await import('./tables');
+  await updateTableStatus(tableId, 'billing');
+}
+
 // Helper to map DB record to Order type
 function mapOrderFromDB(record: any): Order {
   return {

@@ -44,8 +44,9 @@ export interface Order {
   tableNumber?: number;
   customerId?: string;
   customerIdCard?: string;
-  paymentMethod: 'cash' | 'zelle' | 'binance' | 'pago_movil' | 'transfer';
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+  paymentMethod: 'cash' | 'zelle' | 'binance' | 'pago_movil' | 'transfer' | 'pos';
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled' | 'billing' | 'closed';
+  preparationStatus?: 'pending' | 'confirmed' | 'served' | 'cancelled';
   subtotal: number;
   tax: number;
   deliveryFee: number;

@@ -19,7 +19,7 @@ import {
 import { Button, Card, CardContent } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { getTables, createTable, toggleTableActive, deleteTable, updateTableStatus } from '@/lib/services/tables';
-import { getActiveTableOrders, closeTableAccount, reopenTableAccount } from '@/lib/services/orders';
+import { getActiveTableOrders, closeTableAccount, reopenTableAccount, updateOrderPreparationStatus } from '@/lib/services/orders';
 import { RestaurantTable, Order } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
@@ -494,52 +494,98 @@ export default function AdminMesasPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Resumen de Comanda</h4>
-                      {sessionOrders.map((order, idx) => (
-                        <div key={order.id} className="border-l-2 border-celeste-200 pl-4 py-1">
-                          <p className="text-[10px] font-bold text-gray-400 mb-2">ORDEN #{idx+1} • {order.createdAt.toLocaleTimeString()}</p>
-                          <div className="space-y-2">
-                             {order.items.map((item, i) => (
-                               <div key={i} className="flex justify-between text-sm">
-                                  <span className="text-gray-700"><span className="font-bold text-celeste-600">{item.quantity}x</span> {item.product.name}</span>
-                                  <span className="font-bold text-gray-900">{formatCurrency(item.product.price * item.quantity)}</span>
-                               </div>
-                             ))}
+                      <div className="space-y-4">
+                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Resumen de Comanda</h4>
+                        {sessionOrders.map((order, idx) => (
+                          <div key={order.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                            <div className="flex justify-between items-center mb-3">
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ORDEN #{order.id.slice(-4)}</p>
+                              {order.preparationStatus !== 'served' ? (
+                                <button
+                                  onClick={async () => {
+                                    await updateOrderPreparationStatus(order.id, 'served');
+                                    showSession(viewingSessionTable!);
+                                    toast.success('Plato marcado como servido');
+                                  }}
+                                  className="text-[10px] font-black bg-celeste-600 text-white px-2 py-1 rounded-lg hover:bg-celeste-700 transition-colors"
+                                >
+                                  MARCAR SERVIDO
+                                </button>
+                              ) : (
+                                <span className="flex items-center gap-1 text-[10px] font-black text-green-600 uppercase">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Servido
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                               {order.items.map((item, i) => (
+                                 <div key={i} className="flex justify-between text-sm">
+                                    <span className="text-gray-700 font-medium">
+                                      <span className="font-black text-celeste-600 mr-2">{item.quantity}x</span> 
+                                      {item.product.name}
+                                    </span>
+                                    <span className="font-bold text-gray-900">{formatCurrency(item.product.price * item.quantity)}</span>
+                                 </div>
+                               ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
                   </>
                 )}
               </div>
 
-              <div className="p-6 border-t bg-gray-50 space-y-4">
-                <div className="flex justify-between items-center px-2">
-                  <span className="text-gray-500 font-bold uppercase text-xs">Total Mesa</span>
-                  <span className="text-3xl font-black text-celeste-600">
-                    {formatCurrency(sessionOrders.reduce((sum, o) => sum + o.total, 0))}
-                  </span>
+              <div className="p-6 border-t bg-gray-50 space-y-6">
+                <div className="flex justify-between items-end px-2">
+                  <div>
+                    <span className="text-gray-500 font-bold uppercase text-[10px] tracking-widest block mb-1">Total a cobrar</span>
+                    <span className="text-3xl font-black text-celeste-600">
+                      {formatCurrency(sessionOrders.reduce((sum, o) => sum + o.total, 0))}
+                    </span>
+                  </div>
+                  {viewingSessionTable.status === 'billing' && (
+                    <div className="text-right">
+                      <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest block mb-1">Método de Pago</span>
+                      <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-tighter">
+                        {sessionOrders[0]?.paymentMethod?.replace('_', ' ') || 'Efectivo'}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
-                  <Button 
-                    variant="ghost" 
-                    fullWidth 
-                    onClick={() => handleReopen(viewingSessionTable.id)}
-                  >
-                    Reabrir
-                  </Button>
-                  <Button 
-                    variant="primary" 
-                    fullWidth 
-                    size="lg"
-                    className="bg-black hover:bg-gray-800"
-                    onClick={handleCloseSession}
-                    disabled={sessionOrders.length === 0}
-                  >
-                    Cerrar y Cobrar
-                  </Button>
+                  {viewingSessionTable.status === 'billing' ? (
+                    <Button 
+                      variant="primary" 
+                      className="col-span-2 h-14 rounded-2xl text-base font-black shadow-xl shadow-celeste-100"
+                      onClick={handleCloseSession}
+                    >
+                      <CheckCircle2 className="w-5 h-5 mr-3" />
+                      Verificar y Cerrar Mesa
+                    </Button>
+                  ) : (
+                    <>
+                      <Button 
+                        variant="ghost" 
+                        fullWidth 
+                        onClick={() => handleReopen(viewingSessionTable.id)}
+                        className="h-12 font-bold"
+                      >
+                        Reabrir
+                      </Button>
+                      <Button 
+                        variant="primary" 
+                        fullWidth 
+                        size="lg"
+                        className="bg-black hover:bg-gray-800 h-12 font-bold"
+                        onClick={handleCloseSession}
+                        disabled={sessionOrders.length === 0}
+                      >
+                        Finalizar Directo
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
