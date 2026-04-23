@@ -68,7 +68,7 @@ export default function CarritoPage() {
               {/* Cart Items */}
               <div className="lg:col-span-2">
                 <Card>
-                  <CardContent className="p-6">
+                  <CardContent className="p-3 sm:p-6">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xl font-semibold text-gray-900">
                         Productos ({items.length})
@@ -88,10 +88,10 @@ export default function CarritoPage() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className="flex gap-4 p-4 bg-gray-50 rounded-xl"
+                          className="flex gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-xl"
                         >
                           {/* Image */}
-                          <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                          <div className="w-16 h-16 sm:w-24 sm:h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                             {item.product.image ? (
                               <img
                                 src={item.product.image}
@@ -99,58 +99,60 @@ export default function CarritoPage() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-4xl">
+                              <div className="w-full h-full flex items-center justify-center text-2xl sm:text-4xl">
                                 🍔
                               </div>
                             )}
                           </div>
 
                           {/* Details */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900">
-                              {item.product.name}
-                            </h3>
-                            <p className="text-sm text-gray-500 line-clamp-1">
-                              {item.product.description}
-                            </p>
-                            <p className="text-celeste-600 font-semibold mt-1">
-                              {formatCurrency(item.product.price)}
-                            </p>
+                          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                            <div>
+                              <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-1">
+                                {item.product.name}
+                              </h3>
+                              <p className="hidden sm:block text-xs text-gray-500 line-clamp-1">
+                                {item.product.description}
+                              </p>
+                              <p className="text-celeste-600 font-semibold text-xs sm:text-sm mt-0.5 sm:mt-1">
+                                {formatCurrency(item.product.price)}
+                              </p>
+                            </div>
 
                             {/* Quantity controls */}
-                            <div className="flex items-center gap-3 mt-3">
+                            <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-3">
                               <button
                                 onClick={() =>
                                   updateQuantity(item.product.id, item.quantity - 1)
                                 }
-                                className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
                               >
-                                <Minus className="w-4 h-4" />
+                                <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
                               </button>
-                              <span className="font-medium w-8 text-center">
+                              <span className="font-medium text-sm w-6 sm:w-8 text-center text-gray-700">
                                 {item.quantity}
                               </span>
                               <button
                                 onClick={() =>
                                   updateQuantity(item.product.id, item.quantity + 1)
                                 }
-                                className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
                               >
-                                <Plus className="w-4 h-4" />
+                                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                               </button>
                             </div>
                           </div>
 
                           {/* Total & Remove */}
-                          <div className="flex flex-col items-end justify-between">
-                            <span className="font-bold text-gray-900">
+                          <div className="flex flex-col items-end justify-between py-0.5">
+                            <span className="font-bold text-gray-900 text-sm sm:text-base">
                               {formatCurrency(item.product.price * item.quantity)}
                             </span>
                             <button
                               onClick={() => removeItem(item.product.id)}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-1.5 sm:p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             >
-                              <Trash2 className="w-5 h-5" />
+                              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                           </div>
                         </motion.div>
