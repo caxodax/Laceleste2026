@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AppInit } from '@/components/layout/AppInit';
 import './globals.css';
@@ -73,10 +74,12 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className="min-h-screen bg-cream-50" suppressHydrationWarning>
-        <AppInit>
-          {children}
-          <TableActions />
-        </AppInit>
+        <Suspense fallback={<div className="min-h-screen bg-cream-50" />}>
+          <AppInit>
+            {children}
+            <TableActions />
+          </AppInit>
+        </Suspense>
         <Toaster
           position="top-center"
           toastOptions={{
