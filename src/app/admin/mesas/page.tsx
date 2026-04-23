@@ -49,8 +49,8 @@ export default function AdminMesasPage() {
   useEffect(() => {
     fetchTables();
 
-    // REAL-TIME SUBSCRIPTION
-    const channel = supabase
+    // REAL-TIME SUBSCRIPTION FOR TABLES
+    const tableChannel = supabase
       .channel('table-updates')
       .on(
         'postgres_changes',
@@ -58,7 +58,6 @@ export default function AdminMesasPage() {
         (payload) => {
           const updatedTable = payload.new as RestaurantTable;
           
-          // If calling or billing, play sound and notify
           if (updatedTable.status === 'calling' || updatedTable.status === 'billing') {
             playNotificationSound();
             toast((t) => (
@@ -77,12 +76,12 @@ export default function AdminMesasPage() {
                     toast.dismiss(t.id);
                     showSession(updatedTable);
                   }}
-                  className="ml-2 bg-celeste-600 text-white text-[10px] px-2 py-1 rounded-lg font-bold"
+                  className="ml-2 bg-celeste-600 text-white text-[10px] px-2 py-1 rounded-lg font-bold transition-all hover:bg-celeste-700"
                 >
                   VER
                 </button>
               </div>
-            ), { duration: 10000, position: 'top-right' });
+            ), { duration: 15000, position: 'top-right' });
           }
           
           setTables(current => 
@@ -92,8 +91,38 @@ export default function AdminMesasPage() {
       )
       .subscribe();
 
+    // REAL-TIME SUBSCRIPTION FOR NEW COMANDAS (ORDERS)
+    const orderChannel = supabase
+      .channel('order-updates')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          const newOrder = payload.new;
+          if (newOrder.delivery_type === 'table') {
+            playNotificationSound();
+            toast.success(`🍽️ ¡NUEVA COMANDA! - Mesa #${newOrder.customer_address.match(/\d+/)?.[0] || '?'}`, {
+              duration: 10000,
+              position: 'bottom-right',
+              style: {
+                background: '#059669',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }
+            });
+            // Auto refresh if we are viewing this specific table
+            if (viewingSessionTable && viewingSessionTable.id === newOrder.table_id) {
+              showSession(viewingSessionTable);
+            }
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(tableChannel);
+      supabase.removeChannel(orderChannel);
     };
   }, []);
 

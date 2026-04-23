@@ -58,14 +58,23 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       };
 
       await createOrder(orderData);
-      // Waiter notified via Supabase/WhatsApp also
+      
+      // Internal business: Mark table as busy immediately
       await updateTableStatus(tableId!, 'busy');
       
       clearCart();
-      toast.success('¡Comanda enviada a cocina! 👨‍🍳');
+      toast.success('¡Recibido en Cocina! 👨‍🍳', {
+        icon: '✅',
+        duration: 4000,
+        style: {
+          background: '#0ea5e9',
+          color: '#fff',
+          fontWeight: 'bold'
+        }
+      });
       onClose();
     } catch (error) {
-      toast.error('Error al enviar comanda. Intenta de nuevo.');
+      toast.error('Ocurrió un problema. Revisa tu conexión.');
     } finally {
       setLoading(false);
     }
