@@ -154,39 +154,51 @@ export default function AdminMesasPage() {
                             {status.label}
                           </span>
                         </div>
-                        <div className="flex gap-1">
-                          <button 
-                            onClick={() => handleResetStatus(table.id)}
-                            className="p-2 text-gray-400 hover:text-celeste-600 hover:bg-celeste-50 rounded-lg transition-colors"
-                            title="Reiniciar a Libre"
-                          >
-                            <RefreshCcw className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(table.id)}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between group">
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <QrCode className="w-4 h-4" />
-                            <span>Menú QR v3.0</span>
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(qrLink);
+                                toast.success(`Link de Mesa ${table.number} copiado`);
+                              }}
+                              className="p-2 text-gray-400 hover:text-celeste-600 hover:bg-celeste-50 rounded-lg transition-colors"
+                              title="Copiar Link para QR"
+                            >
+                              <QrCode className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleResetStatus(table.id)}
+                              className="p-2 text-gray-400 hover:text-celeste-600 hover:bg-celeste-50 rounded-lg transition-colors"
+                              title="Reiniciar a Libre"
+                            >
+                              <RefreshCcw className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(table.id)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <a 
-                            href={qrLink} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="p-1 px-2 bg-white border border-gray-200 rounded-lg text-[10px] font-mono hover:border-celeste-500 hover:text-celeste-600 transition-all flex items-center gap-1"
-                          >
-                            Abrir <ExternalLink className="w-3 h-3" />
-                          </a>
                         </div>
+
+                        <div className="space-y-4">
+                          <div className="p-3 bg-gray-50 rounded-xl flex items-center justify-between group">
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <ExternalLink className="w-4 h-4" />
+                              <span className="truncate max-w-[120px] font-mono text-[10px]">
+                                {qrLink.replace(/^https?:\/\//, '')}
+                              </span>
+                            </div>
+                            <a 
+                              href={qrLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="p-1 px-3 bg-white border border-gray-200 rounded-lg text-[10px] font-bold hover:border-celeste-500 hover:text-celeste-600 transition-all flex items-center gap-1"
+                            >
+                              Abrir Menú v3.0
+                            </a>
+                          </div>
 
                         <div className="flex items-center justify-between pt-2">
                           <span className="text-sm font-medium text-gray-600">
