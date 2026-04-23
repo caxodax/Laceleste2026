@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { Button, Card, CardContent } from '@/components/ui';
 import { getTables, createTable, toggleTableActive, deleteTable, updateTableStatus } from '@/lib/services/tables';
-import { RestaurantTable } from '@/types';
+import { getActiveTableOrders, closeTableAccount, reopenTableAccount } from '@/lib/services/orders';
+import { RestaurantTable, Order } from '@/types';
+import { formatCurrency } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 
 export default function AdminMesasPage() {
@@ -27,6 +29,9 @@ export default function AdminMesasPage() {
   const [newTableNumber, setNewTableNumber] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
+  const [viewingSessionTable, setViewingSessionTable] = useState<RestaurantTable | null>(null);
+  const [sessionOrders, setSessionOrders] = useState<Order[]>([]);
+  const [loadingSession, setLoadingSession] = useState(false);
 
   const fetchTables = async () => {
     try {
@@ -92,6 +97,42 @@ export default function AdminMesasPage() {
     }
   };
 
+  const showSession = async (table: RestaurantTable) => {
+    try {
+      setViewingSessionTable(table);
+      setLoadingSession(true);
+      const orders = await getActiveTableOrders(table.id);
+      setSessionOrders(orders);
+    } catch (error) {
+      toast.error('Error al cargar la cuenta');
+    } finally {
+      setLoadingSession(false);
+    }
+  };
+
+  const handleCloseSession = async () => {
+    if (!viewingSessionTable) return;
+    try {
+      const customerIdCard = sessionOrders[0]?.customerIdCard;
+      await closeTableAccount(viewingSessionTable.id, customerIdCard);
+      toast.success('Cuenta cerrada correctamente');
+      setViewingSessionTable(null);
+      fetchTables();
+    } catch (error) {
+      toast.error('Error al cerrar la cuenta');
+    }
+  };
+
+  const handleReopen = async (tableId: string) => {
+    try {
+      await reopenTableAccount(tableId);
+      toast.success('Mesa reabierta');
+      fetchTables();
+    } catch (error) {
+      toast.error('Error al reabrir');
+    }
+  };
+
   const getStatusInfo = (status: RestaurantTable['status']) => {
     switch (status) {
       case 'busy': return { label: 'Ocupada', color: 'bg-orange-100 text-orange-700', icon: CheckCircle2 };
@@ -150,8 +191,10 @@ export default function AdminMesasPage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
+                  onClick={() => table.status !== 'free' ? showSession(table) : null}
+                  className={table.status !== 'free' ? 'cursor-pointer' : ''}
                 >
-                  <Card className={`transition-all duration-300 ${!table.active ? 'opacity-60 grayscale' : 'hover:shadow-md'}`}>
+                  <Card className={`transition-all duration-300 ${!table.active ? 'opacity-60 grayscale' : 'hover:shadow-md'} ${table.status !== 'free' ? 'border-celeste-200 bg-celeste-50/10' : ''}`}>
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
@@ -301,6 +344,117 @@ export default function AdminMesasPage() {
                 <p className="mt-6 text-[10px] text-gray-400 italic">
                   Tip: Coloca este QR en un porta-menú o pegado directamente en la mesa.
                 </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SESSION DETAIL DRAWER */}
+      <AnimatePresence>
+        {viewingSessionTable && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setViewingSessionTable(null)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col"
+            >
+              <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+                <div>
+                  <h3 className="text-xl font-black text-gray-900">MESA {viewingSessionTable.number}</h3>
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Detalle de Consumo</p>
+                </div>
+                <button 
+                  onClick={() => setViewingSessionTable(null)}
+                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {loadingSession ? (
+                  <div className="flex flex-col items-center py-20 gap-3">
+                    <RefreshCcw className="w-8 h-8 text-celeste-600 animate-spin" />
+                    <p className="text-gray-400 font-medium">Cargando comanda...</p>
+                  </div>
+                ) : sessionOrders.length === 0 ? (
+                  <div className="text-center py-20 text-gray-400">
+                    <TableIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                    <p>No hay pedidos registrados aún</p>
+                    <Button variant="ghost" size="sm" onClick={() => handleReopen(viewingSessionTable.id)} className="mt-4">
+                      Reabrir última cuenta
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-celeste-50 rounded-2xl p-4 border border-celeste-100 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-celeste-600 flex items-center justify-center text-white">
+                        <Receipt className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-celeste-600 font-bold uppercase tracking-tighter">Cliente Identificado</p>
+                        <p className="text-sm font-bold text-gray-900">{sessionOrders[0].customerName}</p>
+                        <p className="text-[10px] text-gray-400 font-mono">{sessionOrders[0].customerIdCard}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Resumen de Comanda</h4>
+                      {sessionOrders.map((order, idx) => (
+                        <div key={order.id} className="border-l-2 border-celeste-200 pl-4 py-1">
+                          <p className="text-[10px] font-bold text-gray-400 mb-2">ORDEN #{idx+1} • {order.createdAt.toLocaleTimeString()}</p>
+                          <div className="space-y-2">
+                             {order.items.map((item, i) => (
+                               <div key={i} className="flex justify-between text-sm">
+                                  <span className="text-gray-700"><span className="font-bold text-celeste-600">{item.quantity}x</span> {item.product.name}</span>
+                                  <span className="font-bold text-gray-900">{formatCurrency(item.product.price * item.quantity)}</span>
+                               </div>
+                             ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="p-6 border-t bg-gray-50 space-y-4">
+                <div className="flex justify-between items-center px-2">
+                  <span className="text-gray-500 font-bold uppercase text-xs">Total Mesa</span>
+                  <span className="text-3xl font-black text-celeste-600">
+                    {formatCurrency(sessionOrders.reduce((sum, o) => sum + o.total, 0))}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="ghost" 
+                    fullWidth 
+                    onClick={() => handleReopen(viewingSessionTable.id)}
+                  >
+                    Reabrir
+                  </Button>
+                  <Button 
+                    variant="primary" 
+                    fullWidth 
+                    size="lg"
+                    className="bg-black hover:bg-gray-800"
+                    onClick={handleCloseSession}
+                    disabled={sessionOrders.length === 0}
+                  >
+                    Cerrar y Cobrar
+                  </Button>
+                </div>
               </div>
             </motion.div>
           </div>

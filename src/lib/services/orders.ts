@@ -124,6 +124,76 @@ export async function getTodayOrders(): Promise<Order[]> {
   return getOrdersByDateRange(today, tomorrow);
 }
 
+// New: Get all active orders for a table (Open account)
+export async function getActiveTableOrders(tableId: string): Promise<Order[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*, order_items(*, products(name))')
+    .eq('table_id', tableId)
+    .in('status', ['pending', 'confirmed'])
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data.map(mapOrderFromDB);
+}
+
+// New: Close account and handle loyalty/table status
+export async function closeTableAccount(tableId: string, customerIdCard?: string): Promise<void> {
+  const activeOrders = await getActiveTableOrders(tableId);
+  if (activeOrders.length === 0) return;
+
+  const orderIds = activeOrders.map(o => o.id);
+  const totalAmount = activeOrders.reduce((sum, o) => sum + o.total, 0);
+
+  // 1. Mark orders as completed
+  const { error: updateError } = await supabase
+    .from('orders')
+    .update({ status: 'completed', updated_at: new Date().toISOString() })
+    .in('id', orderIds);
+
+  if (updateError) throw updateError;
+
+  // 2. Add loyalty points (1 per order ID, or maybe based on total? User said 1 pt per order)
+  // Let's stick to 1 per visit/session or 1 per order. Usually it's per visit.
+  // User said "se suman al cerrar la cuenta". Let's add 1 point for the whole session.
+  if (customerIdCard) {
+    const { getCustomerByIdCard, addPointsToCustomer } = await import('./customers');
+    await addPointsToCustomer(customerIdCard);
+  }
+
+  // 3. Set table to free
+  const { updateTableStatus } = await import('./tables');
+  await updateTableStatus(tableId, 'free');
+}
+
+// New: Reopen account (Administrative use)
+export async function reopenTableAccount(tableId: string): Promise<void> {
+  // Find the last completed orders for this table in the last hour
+  const hourAgo = new Date();
+  hourAgo.setHours(hourAgo.getHours() - 1);
+
+  const { data: recentOrders, error } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('table_id', tableId)
+    .eq('status', 'completed')
+    .gte('updated_at', hourAgo.toISOString());
+
+  if (error || !recentOrders.length) return;
+
+  const orderIds = recentOrders.map(o => o.id);
+
+  // 1. Mark as confirmed again
+  await supabase
+    .from('orders')
+    .update({ status: 'confirmed', updated_at: new Date().toISOString() })
+    .in('id', orderIds);
+
+  // 2. Set table back to busy
+  const { updateTableStatus } = await import('./tables');
+  await updateTableStatus(tableId, 'busy');
+}
+
 // Helper to map DB record to Order type
 function mapOrderFromDB(record: any): Order {
   return {

@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Receipt, X, Check, HelpCircle } from 'lucide-react';
+import { Bell, Receipt, X, Check, HelpCircle, Wallet } from 'lucide-react';
 import { useTableStore } from '@/store/tableStore';
 import { updateTableStatus } from '@/lib/services/tables';
 import { toast } from 'react-hot-toast';
+import TableAccountModal from './TableAccountModal';
 
 export default function TableActions() {
   const { currentTable, tableId, isOrderingAtTable } = useTableStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   if (!isOrderingAtTable || !tableId) return null;
@@ -42,6 +44,14 @@ export default function TableActions() {
             className="mb-4 flex flex-col gap-3 items-end"
           >
             <button
+              onClick={() => setIsAccountOpen(true)}
+              className="flex items-center gap-2 bg-celeste-600 text-white px-4 py-3 rounded-2xl shadow-xl hover:bg-celeste-700 transition-all border-2 border-white"
+            >
+              <Wallet className="w-5 h-5" />
+              <span className="font-bold text-sm">Ver Mi Cuenta</span>
+            </button>
+
+            <button
               onClick={() => handleAction('billing')}
               disabled={loading}
               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-2xl shadow-xl hover:bg-blue-700 transition-all"
@@ -61,6 +71,14 @@ export default function TableActions() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <TableAccountModal 
+        isOpen={isAccountOpen} 
+        onClose={() => setIsAccountOpen(false)}
+        tableId={tableId}
+        tableNumber={currentTable!}
+        onRequestBill={() => handleAction('billing')}
+      />
 
       <button
         onClick={() => setIsOpen(!isOpen)}
