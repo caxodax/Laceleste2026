@@ -19,13 +19,15 @@ import {
 import { Button, Card, CardContent } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { getTables, createTable, toggleTableActive, deleteTable, updateTableStatus } from '@/lib/services/tables';
-import { getActiveTableOrders, closeTableAccount, reopenTableAccount, updateOrderPreparationStatus } from '@/lib/services/orders';
-import { RestaurantTable, Order } from '@/types';
+import { getActiveTableOrders, closeTableAccount, reopenTableAccount, updateOrderPreparationStatus, addItemToTableOrder, removeProductFromOrder } from '@/lib/services/orders';
+import { getProducts } from '@/lib/services/products';
+import { RestaurantTable, Order, Product } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 
 export default function AdminMesasPage() {
   const [tables, setTables] = useState<RestaurantTable[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTableNumber, setNewTableNumber] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -37,10 +39,14 @@ export default function AdminMesasPage() {
   const fetchTables = async () => {
     try {
       setLoading(true);
-      const data = await getTables();
-      setTables(data);
+      const [tableData, productData] = await Promise.all([
+        getTables(),
+        getProducts()
+      ]);
+      setTables(tableData);
+      setAllProducts(productData);
     } catch (error) {
-      toast.error('Error al cargar las mesas');
+      toast.error('Error al cargar datos');
     } finally {
       setLoading(false);
     }
@@ -494,6 +500,30 @@ export default function AdminMesasPage() {
                       </div>
                     </div>
 
+                      {/* Add Product Search */}
+                      <div className="bg-celeste-50/50 rounded-2xl p-4 border border-celeste-100 mb-6">
+                        <label className="text-[10px] font-black text-celeste-600 uppercase tracking-widest block mb-2">Agregar Producto Manual</label>
+                        <div className="flex gap-2">
+                          <select 
+                            onChange={async (e) => {
+                              const product = allProducts.find(p => p.id === e.target.value);
+                              if (product) {
+                                await addItemToTableOrder(viewingSessionTable!.id, product, 1);
+                                showSession(viewingSessionTable!);
+                                toast.success(`${product.name} agregado`);
+                                e.target.value = '';
+                              }
+                            }}
+                            className="flex-1 bg-white border border-celeste-200 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-celeste-500"
+                          >
+                            <option value="">Selecciona para agregar...</option>
+                            {allProducts.filter(p => p.available).map(p => (
+                              <option key={p.id} value={p.id}>{p.name} - {formatCurrency(p.price)}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
                       <div className="space-y-4">
                         <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Resumen de Comanda</h4>
                         {sessionOrders.map((order, idx) => (
@@ -520,12 +550,26 @@ export default function AdminMesasPage() {
                             </div>
                             <div className="space-y-2">
                                {order.items.map((item, i) => (
-                                 <div key={i} className="flex justify-between text-sm">
-                                    <span className="text-gray-700 font-medium">
+                                 <div key={i} className="flex justify-between items-center text-sm">
+                                    <div className="flex items-center">
                                       <span className="font-black text-celeste-600 mr-2">{item.quantity}x</span> 
-                                      {item.product.name}
-                                    </span>
-                                    <span className="font-bold text-gray-900">{formatCurrency(item.product.price * item.quantity)}</span>
+                                      <span className="text-gray-700 font-medium">{item.product.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      <span className="font-bold text-gray-900">{formatCurrency(item.product.price * item.quantity)}</span>
+                                      <button 
+                                        onClick={async () => {
+                                          if (confirm('¿Quitar este producto?')) {
+                                            await removeProductFromOrder(order.id, item.product.id, item.product.price, item.quantity);
+                                            showSession(viewingSessionTable!);
+                                            toast.success('Producto eliminado');
+                                          }
+                                        }}
+                                        className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
                                  </div>
                                ))}
                             </div>

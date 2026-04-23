@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { Order, CartItem } from '@/types';
+import { Order, Product, CartItem } from '@/types';
 
 export async function getOrders(statusFilter?: string): Promise<Order[]> {
   let query = supabase
@@ -221,6 +221,86 @@ export async function requestTableBilling(tableId: string, paymentMethod: string
   // Also notify table status
   const { updateTableStatus } = await import('./tables');
   await updateTableStatus(tableId, 'billing');
+}
+
+// New: Admin add product to session
+export async function addItemToTableOrder(tableId: string, product: Product, quantity: number): Promise<void> {
+  // Find latest active order or create one
+  const { data: activeOrders } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('table_id', tableId)
+    .in('status', ['pending', 'confirmed'])
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  let orderId;
+  
+  if (!activeOrders || activeOrders.length === 0) {
+    // Create a new "Waiter Order"
+    const { data: newOrder, error } = await supabase
+      .from('orders')
+      .insert({
+        table_id: tableId,
+        customer_name: 'Mesa',
+        customer_phone: 'N/A',
+        customer_address: 'Mesa',
+        status: 'confirmed',
+        preparation_status: 'served',
+        delivery_type: 'table',
+        payment_method: 'cash',
+        total: product.price * quantity,
+        subtotal: product.price * quantity,
+        tax: 0,
+        delivery_fee: 0
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    orderId = newOrder.id;
+  } else {
+    orderId = activeOrders[0].id;
+    // Update total
+    await supabase
+      .from('orders')
+      .update({ 
+        total: activeOrders[0].total + (product.price * quantity),
+        subtotal: activeOrders[0].subtotal + (product.price * quantity)
+      })
+      .eq('id', orderId);
+  }
+
+  // Add the item
+  const { error: itemError } = await supabase
+    .from('order_items')
+    .insert({
+      order_id: orderId,
+      product_id: product.id,
+      quantity: quantity,
+      price: product.price,
+      product_name: product.name
+    });
+
+  if (itemError) throw itemError;
+}
+
+// New: Remove specific item from order
+export async function removeProductFromOrder(orderId: string, productId: string, itemPrice: number, quantity: number): Promise<void> {
+  const { error } = await supabase
+    .from('order_items')
+    .delete()
+    .eq('order_id', orderId)
+    .eq('product_id', productId);
+
+  if (error) throw error;
+
+  // Update order total
+  const { data: order } = await supabase.from('orders').select('total, subtotal').eq('id', orderId).single();
+  if (order) {
+    const newTotal = Math.max(0, order.total - (itemPrice * quantity));
+    await supabase.from('orders').update({ total: newTotal, subtotal: newTotal }).eq('id', orderId);
+  }
 }
 
 // Helper to map DB record to Order type

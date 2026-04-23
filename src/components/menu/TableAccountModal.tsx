@@ -21,10 +21,29 @@ interface TableAccountModalProps {
 
 export default function TableAccountModal({ orders, total, onClose, tableId }: TableAccountModalProps) {
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'summary' | 'payment'>('summary');
+  const [step, setStep] = useState<'summary' | 'payment' | 'instructions'>('summary');
+  const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const allItems = orders.flatMap(o => o.items);
 
-  const handleRequestBill = async (method: string) => {
+  const paymentMethods = [
+    { id: 'pago_movil', name: 'Pago Móvil', icon: Smartphone, color: 'text-purple-600', details: { bank: 'BANCO CELESTE', phone: '0412-1234567', rif: 'V-12345678-9' } },
+    { id: 'zelle', name: 'Zelle', icon: Banknote, color: 'text-indigo-600', details: { email: 'pagos@laceleste.com', owner: 'La Celeste LLC' } },
+    { id: 'cash', name: 'Efectivo', icon: Banknote, color: 'text-green-600', details: { note: 'El mesonero se acercará por el efectivo.' } },
+    { id: 'pos', name: 'Punto de Venta / Tarjeta', icon: CreditCard, color: 'text-blue-600', details: { note: 'Llevaremos el punto a tu mesa.' } },
+  ];
+
+  const handleRequestBill = async (methodId: string) => {
+    const method = paymentMethods.find(m => m.id === methodId);
+    if (methodId === 'cash') {
+       // Cash is direct
+       await confirmBill(methodId);
+    } else {
+       setSelectedMethod(method);
+       setStep('instructions');
+    }
+  };
+
+  const confirmBill = async (method: string) => {
     try {
       setLoading(true);
       await requestTableBilling(tableId, method);
@@ -107,23 +126,18 @@ export default function TableAccountModal({ orders, total, onClose, tableId }: T
                   </div>
                 )}
               </div>
-            ) : (
+            ) : step === 'payment' ? (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <h3 className="text-center font-bold text-gray-900 mb-6">Selecciona tu método de pago</h3>
-                {[
-                  { id: 'pago_movil', name: 'Pago Móvil', icon: Smartphone, color: 'hover:border-celeste-500 text-purple-600' },
-                  { id: 'zelle', name: 'Zelle', icon: Banknote, color: 'hover:border-purple-500 text-indigo-600' },
-                  { id: 'cash', name: 'Efectivo', icon: Banknote, color: 'hover:border-green-500 text-green-600' },
-                  { id: 'pos', name: 'Punto de Venta / Tarjeta', icon: CreditCard, color: 'hover:border-blue-500 text-blue-600' },
-                ].map((m) => (
+                {paymentMethods.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => handleRequestBill(m.id)}
                     disabled={loading}
-                    className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 border-gray-100 transition-all ${m.color.split(' ')[0]} group bg-white hover:bg-gray-50`}
+                    className={`w-full flex items-center justify-between p-5 rounded-2xl border-2 border-gray-100 transition-all hover:border-celeste-500 group bg-white hover:bg-gray-50`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`p-3 rounded-xl bg-gray-50 group-hover:bg-white ${m.color.split(' ')[1]}`}>
+                      <div className={`p-3 rounded-xl bg-gray-50 group-hover:bg-white ${m.color}`}>
                         <m.icon className="w-6 h-6" />
                       </div>
                       <span className="font-bold text-gray-700">{m.name}</span>
@@ -137,6 +151,74 @@ export default function TableAccountModal({ orders, total, onClose, tableId }: T
                 >
                   Volver al resumen
                 </button>
+              </div>
+            ) : (
+              <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                <div className="text-center mb-6">
+                  <div className={`w-20 h-20 rounded-[2rem] bg-gray-50 flex items-center justify-center mx-auto mb-4 ${selectedMethod?.color}`}>
+                    {selectedMethod && <selectedMethod.icon className="w-10 h-10" />}
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900">Datos para {selectedMethod?.name}</h3>
+                  <p className="text-sm text-gray-400">Total a transferir: <span className="font-bold text-gray-900">{formatCurrency(total)}</span></p>
+                </div>
+
+                <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 space-y-4">
+                  {selectedMethod?.id === 'pago_movil' && (
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Banco</p>
+                        <p className="text-sm font-bold text-gray-700">{selectedMethod.details.bank}</p>
+                      </div>
+                      <div className="flex justify-between">
+                         <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teléfono</p>
+                          <p className="text-sm font-bold text-gray-700">{selectedMethod.details.phone}</p>
+                         </div>
+                         <div className="text-right">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Cédula/RIF</p>
+                          <p className="text-sm font-bold text-gray-700">{selectedMethod.details.rif}</p>
+                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedMethod?.id === 'zelle' && (
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Correo Zelle</p>
+                        <p className="text-sm font-bold text-gray-700">{selectedMethod.details.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">A nombre de</p>
+                        <p className="text-sm font-bold text-gray-700">{selectedMethod.details.owner}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedMethod?.id === 'pos' || selectedMethod?.id === 'cash') && (
+                    <div className="text-center py-4">
+                      <p className="font-bold text-gray-700 italic">{selectedMethod.details.note}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3 pt-4">
+                  <Button 
+                    variant="primary" 
+                    fullWidth 
+                    className="h-14 rounded-2xl shadow-xl shadow-celeste-100 text-base font-black uppercase"
+                    onClick={() => confirmBill(selectedMethod?.id)}
+                    disabled={loading}
+                  >
+                    {loading ? 'Procesando...' : 'YA REALICÉ EL PAGO'}
+                  </Button>
+                  <button 
+                    onClick={() => setStep('payment')} 
+                    className="py-3 text-sm font-bold text-gray-400 hover:text-celeste-500 transition-colors"
+                  >
+                    Cambiar método de pago
+                  </button>
+                </div>
               </div>
             )}
           </div>
