@@ -124,31 +124,37 @@ export default function TableAccountModal({
             )}
           </div>
 
-          <div className="bg-celeste-50 rounded-2xl p-5 border border-celeste-100 mb-6">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-sm font-bold text-celeste-700 uppercase tracking-wider">Total Acumulado</span>
-              <span className="text-2xl font-black text-celeste-600">{formatCurrency(total)}</span>
+          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 mb-6">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Total Acumulado</span>
+              <span className="text-3xl font-black text-celeste-600 leading-none">{formatCurrency(total)}</span>
             </div>
-            <p className="text-[10px] text-celeste-400 leading-tight">
-              Este es el total de todos tus pedidos confirmados en esta mesa. Los pedidos nuevos se reflejarán en 1 min.
+            <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden mt-4">
+              <div className="h-full bg-celeste-500 w-full opacity-20" />
+            </div>
+            <p className="mt-4 text-[10px] text-gray-400 leading-relaxed text-center">
+              Este es el total de todos tus pedidos confirmados en esta mesa.<br/> 
+              Los pedidos nuevos se reflejarán en 1 min.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-3">
+          <div className="flex flex-col gap-3">
             <Button 
               variant="primary" 
               fullWidth 
-              size="lg"
-              className="h-14 rounded-2xl shadow-xl shadow-celeste-200"
+              className="h-14 rounded-2xl shadow-xl shadow-celeste-100 text-base font-bold"
               onClick={onRequestBill}
               disabled={allItems.length === 0}
             >
-              <Wallet className="w-5 h-5 mr-2" />
+              <Wallet className="w-5 h-5 mr-3" />
               Pedir la Cuenta Final
             </Button>
-            <Button variant="ghost" fullWidth onClick={onClose} className="h-12 border-none">
+            <button 
+              onClick={onClose} 
+              className="py-3 text-sm font-bold text-gray-400 hover:text-celeste-500 transition-colors"
+            >
               Seguir Pidiendo
-            </Button>
+            </button>
           </div>
         </div>
       </motion.div>

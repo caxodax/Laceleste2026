@@ -17,6 +17,7 @@ import {
   X
 } from 'lucide-react';
 import { Button, Card, CardContent } from '@/components/ui';
+import { supabase } from '@/lib/supabase';
 import { getTables, createTable, toggleTableActive, deleteTable, updateTableStatus } from '@/lib/services/tables';
 import { getActiveTableOrders, closeTableAccount, reopenTableAccount } from '@/lib/services/orders';
 import { RestaurantTable, Order } from '@/types';
@@ -47,7 +48,63 @@ export default function AdminMesasPage() {
 
   useEffect(() => {
     fetchTables();
+
+    // REAL-TIME SUBSCRIPTION
+    const channel = supabase
+      .channel('table-updates')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tables' },
+        (payload) => {
+          const updatedTable = payload.new as RestaurantTable;
+          
+          // If calling or billing, play sound and notify
+          if (updatedTable.status === 'calling' || updatedTable.status === 'billing') {
+            playNotificationSound();
+            toast((t) => (
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${updatedTable.status === 'calling' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                   {updatedTable.status === 'calling' ? <Bell className="w-5 h-5 animate-bounce" /> : <Receipt className="w-5 h-5" />}
+                </div>
+                <div>
+                  <p className="font-bold text-sm">MESA #{updatedTable.number}</p>
+                  <p className="text-xs text-gray-500">
+                    {updatedTable.status === 'calling' ? 'Solicita un Mesonero 🛎️' : 'Solicita la Cuenta 🧾'}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    showSession(updatedTable);
+                  }}
+                  className="ml-2 bg-celeste-600 text-white text-[10px] px-2 py-1 rounded-lg font-bold"
+                >
+                  VER
+                </button>
+              </div>
+            ), { duration: 10000, position: 'top-right' });
+          }
+          
+          setTables(current => 
+            current.map(t => t.id === updatedTable.id ? updatedTable : t)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play();
+    } catch (e) {
+      console.log('Audio play failed');
+    }
+  };
 
   const handleAddTable = async (e: React.FormEvent) => {
     e.preventDefault();
