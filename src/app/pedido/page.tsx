@@ -25,13 +25,18 @@ import { useCartStore } from '@/store/cartStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { formatCurrency, formatBs, getWhatsAppLink } from '@/lib/utils';
 import { restaurantSettings } from '@/data/menu';
+import { useTableStore } from '@/store/tableStore';
+import { getCustomerByIdCard, upsertCustomer, addPointsToCustomer } from '@/lib/services/customers';
+import { createOrder } from '@/lib/services/orders';
+import { updateTableStatus } from '@/lib/services/tables';
 import toast from 'react-hot-toast';
 
 interface OrderFormData {
   customerName: string;
   customerPhone: string;
+  customerIdCard: string;
   customerEmail?: string;
-  deliveryType: 'pickup' | 'delivery';
+  deliveryType: 'pickup' | 'delivery' | 'table';
   deliveryAddress?: string;
   paymentMethod: string;
   notes?: string;
@@ -49,16 +54,33 @@ export default function PedidoPage() {
   }, []);
   
   const { items, updateQuantity, removeItem, getSubtotal, clearCart } = useCartStore();
+  const { currentTable, tableId, clearTable } = useTableStore();
   const subtotal = getSubtotal();
   
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<OrderFormData>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<OrderFormData>({
     defaultValues: {
-      deliveryType: 'pickup',
+      deliveryType: currentTable ? 'table' : 'pickup',
       paymentMethod: 'efectivo',
     },
   });
 
   const deliveryType = watch('deliveryType');
+  const customerIdCard = watch('customerIdCard');
+  
+  // Lookup customer when ID Card changes
+  useEffect(() => {
+    if (customerIdCard?.length >= 5) {
+      getCustomerByIdCard(customerIdCard).then(customer => {
+        if (customer) {
+          setValue('customerName', customer.name);
+          if (customer.phone) setValue('customerPhone', customer.phone);
+          if (customer.email) setValue('customerEmail', customer.email);
+          toast.success(`¡Hola de nuevo, ${customer.name.split(' ')[0]}! Tienes ${customer.points} puntos acumulados.`);
+        }
+      });
+    }
+  }, [customerIdCard, setValue]);
+
   const deliveryFee = (deliveryType === 'delivery' && (info?.showDelivery ?? restaurantSettings.showDelivery)) ? (info?.deliveryFee ?? restaurantSettings.deliveryFee ?? 0) : 0;
   const tax = (info?.showTax ?? restaurantSettings.showTax) ? (subtotal * (info?.taxRate ?? restaurantSettings.taxRate ?? 0)) : 0;
   const total = subtotal + tax + deliveryFee;
@@ -70,24 +92,68 @@ export default function PedidoPage() {
       return;
     }
 
-    setIsSubmitting(true);
+    try {
+      setIsSubmitting(true);
 
-    // Construir mensaje de WhatsApp
-    const itemsList = items
-      .map((item) => `• ${item.quantity}x ${item.product.name} - ${formatCurrency(item.product.price * item.quantity)}`)
-      .join('\n');
+      // 1. CRM: Save/Update customer
+      const customer = await upsertCustomer({
+        idCard: data.customerIdCard,
+        name: data.customerName,
+        phone: data.customerPhone,
+        email: data.customerEmail
+      });
 
-    const paymentMethodsList = info?.paymentMethods?.length ? info.paymentMethods : restaurantSettings.paymentMethods;
-    const paymentInfo = paymentMethodsList.find((m) => m.id === data.paymentMethod);
+      // 2. Save Order to Database
+      const orderId = await createOrder({
+        items,
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail,
+        customerId: customer.id,
+        customerIdCard: data.customerIdCard,
+        deliveryType: data.deliveryType,
+        deliveryAddress: data.deliveryAddress,
+        tableId: tableId || undefined,
+        tableNumber: currentTable || undefined,
+        paymentMethod: data.paymentMethod as any,
+        status: 'pending',
+        subtotal,
+        tax,
+        deliveryFee,
+        total,
+        notes: data.notes
+      });
 
-    const message = `
+      // 3. Loyalty: Credit points (1 point per dollar)
+      await addPointsToCustomer(data.customerIdCard, Math.floor(total));
+
+      // 4. If table order, update table status
+      if (tableId && data.deliveryType === 'table') {
+        await updateTableStatus(tableId, 'busy');
+      }
+
+      // 5. WhatsApp Message
+      const itemsList = items
+        .map((item) => `• ${item.quantity}x ${item.product.name} - ${formatCurrency(item.product.price * item.quantity)}`)
+        .join('\n');
+
+      const paymentMethodsList = info?.paymentMethods?.length ? info.paymentMethods : restaurantSettings.paymentMethods;
+      const paymentInfo = paymentMethodsList.find((m) => m.id === data.paymentMethod);
+
+      const deliveryLabel = data.deliveryType === 'delivery' 
+        ? '🚗 Delivery' 
+        : data.deliveryType === 'table' 
+        ? `🪑 Mesa #${currentTable}` 
+        : '🏪 Retiro en local';
+
+      const message = `
 🍔 *NUEVO PEDIDO - ${info?.name || restaurantSettings.name || 'LA CELESTE'}*
 
 👤 *Cliente:* ${data.customerName}
+🆔 *ID:* ${data.customerIdCard}
 📱 *Teléfono:* ${data.customerPhone}
-${data.customerEmail ? `📧 *Email:* ${data.customerEmail}` : ''}
 
-📦 *Tipo de entrega:* ${data.deliveryType === 'delivery' ? '🚗 Delivery' : '🏪 Retiro en local'}
+📦 *Tipo de entrega:* ${deliveryLabel}
 ${data.deliveryType === 'delivery' && data.deliveryAddress ? `📍 *Dirección:* ${data.deliveryAddress}` : ''}
 
 🛒 *PEDIDO:*
@@ -98,22 +164,27 @@ Subtotal: ${formatCurrency(subtotal)}
 ${tax > 0 ? `IVA (${(info?.taxRate ?? restaurantSettings.taxRate ?? 0) * 100}%): ${formatCurrency(tax)}` : ''}
 ${deliveryFee > 0 ? `Delivery: ${formatCurrency(deliveryFee)}` : ''}
 *TOTAL: ${formatCurrency(total)}*
-${((info?.showBs ?? restaurantSettings.showBs) && totalBs > 0) ? `*TOTAL BS: ${formatBs(totalBs)}* (Tasa: ${bcvRate})` : ''}
+${((info?.showBs ?? restaurantSettings.showBs) && totalBs > 0) ? `*TOTAL BS: ${formatBs(totalBs)}*` : ''}
 
 💳 *Método de pago:* ${paymentInfo?.name || data.paymentMethod}
 
 ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
 
-¡Gracias por tu pedido! 🙏
-    `.trim();
+_Orden registrada: ${orderId.slice(0, 8)}_
+`.trim();
 
-    // Abrir WhatsApp
-    const whatsappLink = getWhatsAppLink(info?.whatsapp || restaurantSettings.whatsapp || '584245645357', message);
-    window.open(whatsappLink, '_blank');
+      const whatsappLink = getWhatsAppLink(info?.whatsapp || restaurantSettings.whatsapp || '584245645357', message);
+      window.open(whatsappLink, '_blank');
 
-    setIsSubmitting(false);
-    setOrderComplete(true);
-    clearCart();
+      setIsSubmitting(false);
+      setOrderComplete(true);
+      clearCart();
+      if (data.deliveryType !== 'table') clearTable();
+    } catch (error) {
+      console.error(error);
+      toast.error('Hubo un problema al procesar tu pedido. Intenta de nuevo.');
+      setIsSubmitting(false);
+    }
   };
 
   if (!isMounted) {
@@ -324,35 +395,70 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                         </h2>
 
                         <div className="space-y-4">
-                          <Input
-                            label="Nombre completo"
-                            placeholder="Tu nombre"
-                            icon={<User className="w-5 h-5" />}
-                            {...register('customerName', { required: 'El nombre es requerido' })}
-                            error={errors.customerName?.message}
-                          />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                              label="Cédula / ID"
+                              placeholder="V-12345678"
+                              icon={<CreditCard className="w-5 h-5" />}
+                              {...register('customerIdCard', { required: 'La cédula es requerida' })}
+                              error={errors.customerIdCard?.message}
+                            />
 
-                          <Input
-                            label="Teléfono"
-                            placeholder="0412-1234567"
-                            icon={<Phone className="w-5 h-5" />}
-                            {...register('customerPhone', { required: 'El teléfono es requerido' })}
-                            error={errors.customerPhone?.message}
-                          />
+                            <Input
+                              label="Nombre completo"
+                              placeholder="Tu nombre"
+                              icon={<User className="w-5 h-5" />}
+                              {...register('customerName', { required: 'El nombre es requerido' })}
+                              error={errors.customerName?.message}
+                            />
+                          </div>
 
-                          <Input
-                            label="Email (opcional)"
-                            type="email"
-                            placeholder="tu@email.com"
-                            {...register('customerEmail')}
-                          />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Input
+                              label="Teléfono"
+                              placeholder="0412-1234567"
+                              icon={<Phone className="w-5 h-5" />}
+                              {...register('customerPhone', { required: 'El teléfono es requerido' })}
+                              error={errors.customerPhone?.message}
+                            />
+
+                            <Input
+                              label="Email (opcional)"
+                              type="email"
+                              placeholder="tu@email.com"
+                              {...register('customerEmail')}
+                            />
+                          </div>
 
                           {/* Delivery Type */}
                           <div>
-                            <label className="label">Tipo de entrega</label>
-                            <div className="grid grid-cols-2 gap-4 mt-2">
+                            <label className="label">¿Cómo recibes tu pedido?</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                              {currentTable && (
+                                <label
+                                  className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
+                                    deliveryType === 'table'
+                                      ? 'border-celeste-500 bg-celeste-50'
+                                      : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    value="table"
+                                    {...register('deliveryType')}
+                                    className="sr-only"
+                                  />
+                                  <motion.div
+                                    animate={deliveryType === 'table' ? { scale: [1, 1.1, 1], rotate: [0, 5, 0] } : {}}
+                                  >
+                                    <CheckCircle className={`w-6 h-6 mb-1 ${deliveryType === 'table' ? 'text-celeste-600' : 'text-gray-400'}`} />
+                                  </motion.div>
+                                  <span className="font-bold text-sm">Mesa #{currentTable}</span>
+                                </label>
+                              )}
+                              
                               <label
-                                className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                                className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
                                   deliveryType === 'pickup'
                                     ? 'border-celeste-500 bg-celeste-50'
                                     : 'border-gray-200 hover:border-gray-300'
@@ -364,18 +470,16 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                                   {...register('deliveryType')}
                                   className="sr-only"
                                 />
-                                <Store className="w-6 h-6 text-celeste-500" />
-                                <div>
-                                  <span className="font-medium">Retiro</span>
-                                  <p className="text-sm text-gray-500">Gratis</p>
-                                </div>
+                                <Store className={`w-6 h-6 mb-1 ${deliveryType === 'pickup' ? 'text-celeste-600' : 'text-gray-400'}`} />
+                                <span className="font-bold text-sm">Retiro</span>
                               </label>
+
                               <label
-                                className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                                className={`flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all ${
                                   deliveryType === 'delivery'
                                     ? 'border-celeste-500 bg-celeste-50'
                                     : 'border-gray-200 hover:border-gray-300'
-                                }`}
+                                } ${currentTable ? 'col-span-2 sm:col-span-1' : ''}`}
                               >
                                 <input
                                   type="radio"
@@ -383,13 +487,8 @@ ${data.notes ? `📝 *Notas:* ${data.notes}` : ''}
                                   {...register('deliveryType')}
                                   className="sr-only"
                                 />
-                                <Truck className="w-6 h-6 text-celeste-500" />
-                                <div>
-                                  <span className="font-medium">Delivery</span>
-                                  <p className="text-sm text-gray-500">
-                                    {(info?.showDelivery ?? restaurantSettings.showDelivery) ? formatCurrency(info?.deliveryFee ?? restaurantSettings.deliveryFee ?? 0) : 'Gratis'}
-                                  </p>
-                                </div>
+                                <Truck className={`w-6 h-6 mb-1 ${deliveryType === 'delivery' ? 'text-celeste-600' : 'text-gray-400'}`} />
+                                <span className="font-bold text-sm">Delivery</span>
                               </label>
                             </div>
                           </div>

@@ -39,7 +39,11 @@ export interface Order {
   customerPhone: string;
   customerEmail?: string;
   deliveryAddress?: string;
-  deliveryType: 'pickup' | 'delivery';
+  deliveryType: 'pickup' | 'delivery' | 'table';
+  tableId?: string;
+  tableNumber?: number;
+  customerId?: string;
+  customerIdCard?: string;
   paymentMethod: 'cash' | 'zelle' | 'binance' | 'pago_movil' | 'transfer';
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
   subtotal: number;
@@ -170,4 +174,25 @@ export interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   checkAuth: () => Promise<void>;
+}
+
+export interface RestaurantTable {
+  id: string;
+  number: number;
+  status: 'free' | 'busy' | 'calling' | 'billing';
+  active: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface Customer {
+  id: string;
+  idCard: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  points: number;
+  lastVisit?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

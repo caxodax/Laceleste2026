@@ -29,6 +29,7 @@ const menuItems = [
   { href: '/admin/notas-entrega', label: 'Notas de Entrega', icon: FileText },
   { href: '/admin/productos', label: 'Productos', icon: Package },
   { href: '/admin/categorias', label: 'Categorías', icon: Grid },
+  { href: '/admin/mesas', label: 'Mesas', icon: Package },
   { href: '/admin/configuracion', label: 'Configuración', icon: Settings },
 ];
 

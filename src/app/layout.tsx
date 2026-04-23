@@ -56,6 +56,8 @@ export const viewport = {
   themeColor: '#0ea5e9',
 };
 
+import TableActions from '@/components/menu/TableActions';
+
 export default function RootLayout({
   children,
 }: {
@@ -73,6 +75,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-cream-50" suppressHydrationWarning>
         <AppInit>
           {children}
+          <TableActions />
         </AppInit>
         <Toaster
           position="top-center"
