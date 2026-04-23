@@ -1,28 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Wallet, X, Clock, CheckCircle2, ChevronRight, 
-  CreditCard, Banknote, Smartphone, Receipt 
+  CreditCard, Banknote, Smartphone, Receipt,
+  RefreshCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
 import { Order } from '@/types';
-import { requestTableBilling } from '@/lib/services/orders';
+import { requestTableBilling, getActiveTableOrders } from '@/lib/services/orders';
 import { toast } from 'react-hot-toast';
 
 interface TableAccountModalProps {
-  orders: Order[];
-  total: number;
   onClose: () => void;
   tableId: string;
 }
 
-export default function TableAccountModal({ orders, total, onClose, tableId }: TableAccountModalProps) {
+export default function TableAccountModal({ onClose, tableId }: TableAccountModalProps) {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'summary' | 'payment' | 'instructions'>('summary');
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [tableId]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoadingData(true);
+      const data = await getActiveTableOrders(tableId);
+      setOrders(data);
+    } catch (error) {
+      toast.error('Error al cargar tu cuenta');
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const total = orders.reduce((sum, o) => sum + o.total, 0);
   const allItems = orders.flatMap(o => o.items);
 
   const paymentMethods = [
@@ -35,7 +54,6 @@ export default function TableAccountModal({ orders, total, onClose, tableId }: T
   const handleRequestBill = async (methodId: string) => {
     const method = paymentMethods.find(m => m.id === methodId);
     if (methodId === 'cash') {
-       // Cash is direct
        await confirmBill(methodId);
     } else {
        setSelectedMethod(method);
@@ -87,7 +105,12 @@ export default function TableAccountModal({ orders, total, onClose, tableId }: T
           </div>
 
           <div className="max-h-[50vh] overflow-y-auto mb-8 pr-2 space-y-4 custom-scrollbar">
-            {step === 'summary' ? (
+            {loadingData ? (
+              <div className="flex flex-col items-center py-20 gap-3">
+                <RefreshCcw className="w-8 h-8 text-celeste-600 animate-spin" />
+                <p className="text-gray-400 font-medium font-bold">Cargando tu cuenta...</p>
+              </div>
+            ) : step === 'summary' ? (
               <div className="space-y-4">
                 {orders.map((order, oIndex) => (
                   <div key={order.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -223,7 +246,7 @@ export default function TableAccountModal({ orders, total, onClose, tableId }: T
             )}
           </div>
 
-          {step === 'summary' && (
+          {step === 'summary' && !loadingData && (
             <>
               <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 mb-6">
                 <div className="flex justify-between items-end mb-2">

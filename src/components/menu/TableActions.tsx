@@ -72,13 +72,14 @@ export default function TableActions() {
         )}
       </AnimatePresence>
 
-      <TableAccountModal 
-        isOpen={isAccountOpen} 
-        onClose={() => setIsAccountOpen(false)}
-        tableId={tableId}
-        tableNumber={currentTable!}
-        onRequestBill={() => handleAction('billing')}
-      />
+      <AnimatePresence>
+        {isAccountOpen && (
+          <TableAccountModal 
+            onClose={() => setIsAccountOpen(false)}
+            tableId={tableId}
+          />
+        )}
+      </AnimatePresence>
 
       <button
         onClick={() => setIsOpen(!isOpen)}
