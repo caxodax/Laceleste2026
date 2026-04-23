@@ -1,13 +1,17 @@
 'use client';
 
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { useCartStore } from '@/store/cartStore';
+import { useTableStore } from '@/store/tableStore';
+import { createOrder } from '@/lib/services/orders';
+import { updateTableStatus } from '@/lib/services/tables';
 import { Button } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -16,7 +20,63 @@ interface CartDrawerProps {
 
 export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { items, updateQuantity, removeItem, getSubtotal, clearCart } = useCartStore();
+  const { isOrderingAtTable, currentTable, tableId, customerName, customerIdCard, setCustomerInfo } = useTableStore();
+  const [loading, setLoading] = useState(false);
+  const [showInfoForm, setShowInfoForm] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [formId, setFormId] = useState('');
+
   const subtotal = getSubtotal();
+
+  const handleKitchenOrder = async () => {
+    if (!customerName || !customerIdCard) {
+      setShowInfoForm(true);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const orderData = {
+        customerName,
+        customerIdCard,
+        customerPhone: 'N/A',
+        customerAddress: `Mesa #${currentTable}`,
+        status: 'pending' as const,
+        items: items.map(item => ({
+          productId: item.product.id,
+          product: item.product,
+          quantity: item.quantity
+        })),
+        subtotal: subtotal,
+        tax: 0,
+        deliveryFee: 0,
+        total: subtotal,
+        deliveryType: 'table' as const,
+        paymentMethod: 'cash' as const, // Will be finalized later
+        tableId: tableId!
+      };
+
+      await createOrder(orderData);
+      // Waiter notified via Supabase/WhatsApp also
+      await updateTableStatus(tableId!, 'busy');
+      
+      clearCart();
+      toast.success('¡Comanda enviada a cocina! 👨‍🍳');
+      onClose();
+    } catch (error) {
+      toast.error('Error al enviar comanda. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName || !formId) return;
+    setCustomerInfo(formName, formId);
+    setShowInfoForm(false);
+  };
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -53,7 +113,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <div className="flex items-center justify-between px-6 py-4 border-b">
                       <Dialog.Title className="text-xl font-semibold text-gray-900 flex items-center gap-2">
                         <ShoppingBag className="w-6 h-6 text-celeste-500" />
-                        Tu Carrito
+                        {isOrderingAtTable ? `Comanda Mesa #${currentTable}` : 'Tu Carrito'}
                       </Dialog.Title>
                       <button
                         onClick={onClose}
@@ -65,7 +125,48 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto px-6 py-4">
-                      {items.length === 0 ? (
+                      {showInfoForm ? (
+                        <div className="py-6 space-y-6">
+                          <div className="text-center">
+                            <h3 className="text-lg font-bold text-gray-900">¿Quién disfruta hoy?</h3>
+                            <p className="text-sm text-gray-500">Solo necesitamos esto una vez para tus puntos de regalo 🎁</p>
+                          </div>
+                          <form onSubmit={handleSaveInfo} className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre y Apellido</label>
+                              <input 
+                                type="text"
+                                required
+                                value={formName}
+                                onChange={e => setFormName(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-celeste-500 outline-none"
+                                placeholder="Ej. Juan Pérez"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Cédula de Identidad</label>
+                              <input 
+                                type="text"
+                                required
+                                value={formId}
+                                onChange={e => setFormId(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-celeste-500 outline-none"
+                                placeholder="V-12345678"
+                              />
+                            </div>
+                            <Button type="submit" fullWidth variant="primary">
+                              Guardar y Continuar
+                            </Button>
+                            <button 
+                              type="button" 
+                              onClick={() => setShowInfoForm(false)}
+                              className="w-full py-2 text-sm text-gray-400"
+                            >
+                              Volver al carrito
+                            </button>
+                          </form>
+                        </div>
+                      ) : items.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-center">
                           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                             <ShoppingBag className="w-12 h-12 text-gray-400" />
@@ -153,7 +254,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     </div>
 
                     {/* Footer */}
-                    {items.length > 0 && (
+                    {items.length > 0 && !showInfoForm && (
                       <div className="border-t px-6 py-4 space-y-4">
                         {/* Subtotal */}
                         <div className="flex items-center justify-between text-lg">
@@ -165,11 +266,22 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
                         {/* Actions */}
                         <div className="space-y-2">
-                          <Link href="/pedido" onClick={onClose}>
-                            <Button variant="primary" fullWidth>
-                              Continuar Pedido
+                          {isOrderingAtTable ? (
+                            <Button 
+                              variant="primary" 
+                              fullWidth
+                              onClick={handleKitchenOrder}
+                              disabled={loading}
+                            >
+                              {loading ? 'Enviando...' : 'Pedir a Cocina 👨‍🍳'}
                             </Button>
-                          </Link>
+                          ) : (
+                            <Link href="/pedido" onClick={onClose}>
+                              <Button variant="primary" fullWidth>
+                                Continuar Pedido
+                              </Button>
+                            </Link>
+                          )}
                           <button
                             onClick={clearCart}
                             className="w-full py-2 text-sm text-gray-500 hover:text-red-500 transition-colors"
