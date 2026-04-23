@@ -46,7 +46,7 @@ export function Badge({
 
 // Badge para estados de pedidos
 interface OrderStatusBadgeProps {
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled' | 'billing' | 'closed';
 }
 
 const statusConfig = {
@@ -56,6 +56,8 @@ const statusConfig = {
   ready: { label: 'Listo', variant: 'success' as const },
   delivered: { label: 'Entregado', variant: 'success' as const },
   cancelled: { label: 'Cancelado', variant: 'danger' as const },
+  billing: { label: 'Pidiendo Cuenta', variant: 'warning' as const },
+  closed: { label: 'Finalizado', variant: 'gray' as const },
 };
 
 export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
@@ -63,11 +65,12 @@ export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
   return (
     <Badge variant={config.variant}>
       <span className={cn('w-2 h-2 rounded-full mr-2', {
-        'bg-yellow-500': status === 'pending',
+        'bg-yellow-500': status === 'pending' || status === 'billing',
         'bg-celeste-500': status === 'confirmed',
         'bg-gold-500': status === 'preparing',
         'bg-green-500': status === 'ready' || status === 'delivered',
         'bg-red-500': status === 'cancelled',
+        'bg-gray-500': status === 'closed',
       })} />
       {config.label}
     </Badge>

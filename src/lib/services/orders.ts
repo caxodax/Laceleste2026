@@ -148,7 +148,7 @@ export async function closeTableAccount(tableId: string, customerIdCard?: string
   // 1. Mark orders as completed
   const { error: updateError } = await supabase
     .from('orders')
-    .update({ status: 'completed', updated_at: new Date().toISOString() })
+    .update({ status: 'closed', updated_at: new Date().toISOString() })
     .in('id', orderIds);
 
   if (updateError) throw updateError;
@@ -176,7 +176,7 @@ export async function reopenTableAccount(tableId: string): Promise<void> {
     .from('orders')
     .select('id')
     .eq('table_id', tableId)
-    .eq('status', 'completed')
+    .eq('status', 'closed')
     .gte('updated_at', hourAgo.toISOString());
 
   if (error || !recentOrders.length) return;
