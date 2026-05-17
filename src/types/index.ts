@@ -197,3 +197,10 @@ export interface Customer {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface LoyaltySettings {
+  active: boolean;
+  pointsPerOrder: number;
+  pointsToReward: number;
+  rewardDescription: string;
+}

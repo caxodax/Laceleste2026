@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Bell,
   User,
+  Users,
   Grid,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -25,6 +26,7 @@ import { cn } from '@/lib/utils';
 
 const menuItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/clientes', label: 'Clientes (CRM)', icon: Users },
   { href: '/admin/pedidos', label: 'Pedidos', icon: ShoppingBag },
   { href: '/admin/notas-entrega', label: 'Notas de Entrega', icon: FileText },
   { href: '/admin/productos', label: 'Productos', icon: Package },

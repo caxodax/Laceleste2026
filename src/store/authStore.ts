@@ -46,6 +46,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
             createdAt: new Date(data.user.created_at),
           },
           loading: false,
+          initialized: true,
         });
       }
     } catch (error: any) {
@@ -75,8 +76,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      // ... same logic but check if still needed ...
-      if (useAuthStore.getState().user && session?.user?.id === useAuthStore.getState().user?.id) return;
+      if (useAuthStore.getState().user && session?.user?.id === useAuthStore.getState().user?.id) {
+        set({ initialized: true });
+        return;
+      }
       
       if (session?.user) {
         const { data: profile } = await supabase
@@ -112,7 +115,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
         if (session?.user) {
           // Only fetch if user changed or not already set
           const currentUser = useAuthStore.getState().user;
-          if (currentUser?.id === session.user.id) return;
+          if (currentUser?.id === session.user.id) {
+            set({ initialized: true });
+            return;
+          }
 
           const { data: profile } = await supabase
             .from('profiles')

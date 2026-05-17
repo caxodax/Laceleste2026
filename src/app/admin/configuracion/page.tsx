@@ -21,14 +21,15 @@ import {
   MapPin,
   ToggleLeft as Toggle,
   Check,
+  Award,
 } from 'lucide-react';
 import { Button, Input, Card, CardContent, Badge, Modal } from '@/components/ui';
 import { getAllSettings, updateSettings } from '@/lib/services/settings';
 import { uploadProductImage } from '@/lib/services/storage';
-import { RestaurantSettings, HeroSettings, AboutSettings, PaymentMethod } from '@/types';
+import { RestaurantSettings, HeroSettings, AboutSettings, PaymentMethod, LoyaltySettings } from '@/types';
 import toast from 'react-hot-toast';
 
-type TabType = 'general' | 'hero' | 'pagos' | 'nosotros';
+type TabType = 'general' | 'hero' | 'pagos' | 'nosotros' | 'fidelidad';
 
 export default function ConfiguracionPage() {
   const [activeTab, setActiveTab] = useState<TabType>('general');
@@ -40,6 +41,7 @@ export default function ConfiguracionPage() {
   const [hero, setHero] = useState<HeroSettings | null>(null);
   const [payments, setPayments] = useState<PaymentMethod[]>([]);
   const [about, setAbout] = useState<AboutSettings | null>(null);
+  const [loyalty, setLoyalty] = useState<LoyaltySettings | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
@@ -70,6 +72,12 @@ export default function ConfiguracionPage() {
       setAbout(data.about_settings || {
         title: 'Sobre Nosotros',
         description: 'La mejor experiencia de sabor argentino en Barquisimeto.',
+      });
+      setLoyalty(data.loyalty_settings || {
+        active: true,
+        pointsPerOrder: 1,
+        pointsToReward: 10,
+        rewardDescription: 'Hamburguesa Gratis'
       });
     } catch (error) {
       toast.error('Error al cargar configuraciones');
@@ -115,6 +123,8 @@ export default function ConfiguracionPage() {
         await updateSettings('payment_methods', payments);
       } else if (activeTab === 'nosotros' && about) {
         await updateSettings('about_settings', about);
+      } else if (activeTab === 'fidelidad' && loyalty) {
+        await updateSettings('loyalty_settings', loyalty);
       }
       toast.success('Configuración guardada');
     } catch (error) {
@@ -138,6 +148,7 @@ export default function ConfiguracionPage() {
     { id: 'hero', label: 'Portada (Hero)', icon: <ImageIcon className="w-4 h-4" /> },
     { id: 'pagos', label: 'Pagos', icon: <CreditCard className="w-4 h-4" /> },
     { id: 'nosotros', label: 'Nosotros', icon: <Users2 className="w-4 h-4" /> },
+    { id: 'fidelidad', label: 'Fidelidad', icon: <Award className="w-4 h-4" /> },
   ];
 
   return (
@@ -616,6 +627,99 @@ export default function ConfiguracionPage() {
                       </div>
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'about')} />
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {activeTab === 'fidelidad' && loyalty && (
+          <motion.div
+            key="fidelidad"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 text-celeste-600">Programa de Fidelización</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Configura las reglas del club de puntos. Los clientes podrán acumular puntos en cada pedido que realicen a través de la web o cuando cierren su cuenta en el local.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <div>
+                        <p className="font-semibold text-gray-900">Activar Programa de Puntos</p>
+                        <p className="text-sm text-gray-500">¿Permitir a los clientes acumular y reclamar puntos?</p>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setLoyalty({ ...loyalty, active: !loyalty.active })}
+                        className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${loyalty.active ? 'bg-celeste-500' : 'bg-gray-300'}`}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${loyalty.active ? 'left-7' : 'left-1'}`} />
+                      </button>
+                    </div>
+
+                    {loyalty.active && (
+                      <>
+                        <Input 
+                          label="Puntos por pedido" 
+                          type="number" 
+                          min="1" 
+                          value={loyalty.pointsPerOrder} 
+                          onChange={e => setLoyalty({ ...loyalty, pointsPerOrder: parseInt(e.target.value) || 1 })}
+                          placeholder="Ej: 1"
+                        />
+                        
+                        <Input 
+                          label="Puntos necesarios para recompensa" 
+                          type="number" 
+                          min="1" 
+                          value={loyalty.pointsToReward} 
+                          onChange={e => setLoyalty({ ...loyalty, pointsToReward: parseInt(e.target.value) || 10 })}
+                          placeholder="Ej: 10"
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                    {loyalty.active && (
+                      <>
+                        <Input 
+                          label="Descripción de la Recompensa" 
+                          type="text" 
+                          value={loyalty.rewardDescription} 
+                          onChange={e => setLoyalty({ ...loyalty, rewardDescription: e.target.value })}
+                          placeholder="Ej: Hamburguesa Gratis"
+                        />
+
+                        {/* Vista previa en tarjeta premium estilo Club */}
+                        <div className="p-6 bg-gradient-to-br from-gold-400 via-gold-500 to-amber-600 rounded-3xl text-white shadow-xl relative overflow-hidden flex flex-col justify-between h-48">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-xs font-bold tracking-widest uppercase opacity-80">Club La Celeste</span>
+                              <h4 className="text-xl font-black mt-1">Tarjeta de Puntos</h4>
+                            </div>
+                            <Award className="w-8 h-8 text-amber-100 animate-pulse" />
+                          </div>
+
+                          <div className="space-y-1">
+                            <span className="text-[10px] uppercase font-bold tracking-wider opacity-85">Tu Meta</span>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-black">{loyalty.pointsToReward} Puntos</span>
+                              <span className="text-xs opacity-90">= 1 {loyalty.rewardDescription || 'Recompensa'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>

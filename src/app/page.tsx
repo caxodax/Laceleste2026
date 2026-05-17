@@ -105,7 +105,7 @@ export default function HomePage() {
       
       <main>
         {/* Hero Section */}
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <section className="relative min-h-screen flex items-end justify-start overflow-hidden">
           {/* Background Layer */}
           <div className="absolute inset-0 z-0">
             <AnimatePresence mode="wait">
@@ -125,7 +125,7 @@ export default function HomePage() {
                     priority
                     className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/40 z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
                 </motion.div>
               ) : settings.hero?.backgroundImage ? (
                 <motion.div 
@@ -141,7 +141,7 @@ export default function HomePage() {
                     priority
                     className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/40 z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
                 </motion.div>
               ) : (
                 <div key="gradient-bg" className="absolute inset-0 bg-gradient-to-br from-celeste-600 via-celeste-50 to-celeste-700" />
@@ -151,7 +151,7 @@ export default function HomePage() {
 
           {/* Carousel Indicators */}
           {settings.hero?.useCarousel && settings.hero.carouselImages.length > 1 && (
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+            <div className="absolute bottom-8 right-8 z-20 flex gap-2">
               {settings.hero.carouselImages.map((_, idx) => (
                 <button
                   key={idx}
@@ -164,84 +164,24 @@ export default function HomePage() {
             </div>
           )}
           
-          <div className="container-app relative z-10 py-32">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-                className="text-center lg:text-left"
-              >
-                {settings.hero?.badge && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white mb-6"
-                  >
-                    <Star className="w-4 h-4 text-gold-400 fill-gold-400" />
-                    <span className="text-sm font-medium">{settings.hero.badge}</span>
-                  </motion.div>
-                )}
-
-                <h1 className="heading-1 text-white mb-6">
-                  {settings.hero?.title || 'Hamburguesas'}
-                  <span className="block text-gold-400">Artesanales</span>
-                </h1>
-
-                <p className="text-xl text-white/90 mb-8 max-w-lg mx-auto lg:mx-0 whitespace-pre-line">
-                  {settings.hero?.subtitle || 'Inspiradas en los sabores de Argentina 🇦🇷\nHechas con amor y los mejores ingredientes'}
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  <Link href={settings.hero?.ctaLink || "/menu"}>
-                    <Button variant="gold" size="lg" icon={<ArrowRight className="w-5 h-5" />} iconPosition="right">
-                      {settings.hero?.ctaText || 'Ver Menú'}
-                    </Button>
-                  </Link>
-                  <Link href={settings.hero?.secondaryCtaLink || "/pedido"}>
-                    <Button variant="secondary" size="lg" className="bg-white/10 border-white text-white hover:bg-white hover:text-celeste-600">
-                      {settings.hero?.secondaryCtaText || 'Hacer Pedido'}
-                    </Button>
-                  </Link>
-                </div>
-
-                <div className="flex flex-wrap gap-4 mt-8 justify-center lg:justify-start">
-                  <div className="flex items-center gap-2 text-white/80">
-                    <Clock className="w-5 h-5" />
-                    <span className="text-sm font-medium">5PM - 12AM</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-white/80">
-                    <MapPin className="w-5 h-5" />
-                    <span className="text-sm font-medium">Barquisimeto</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-white/80">
-                    <Phone className="w-5 h-5" />
-                    <span className="text-sm font-medium">{settings.info?.phone || '0424-5645357'}</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, ease: 'easeOut', delay: 0.2 }}
-                className="relative hidden lg:block"
-              >
-                <div className="relative w-96 h-96 mx-auto">
-                  <div className="absolute inset-0 bg-gold-400/30 rounded-full blur-3xl animate-pulse" />
-                  <div className="relative w-full h-full rounded-full bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-celeste-400 to-celeste-600 flex items-center justify-center shadow-2xl">
-                        <span className="font-logo text-white text-5xl">C</span>
-                      </div>
-                      <h2 className="font-logo text-3xl text-white">La Celeste</h2>
-                      <p className="text-white/70 text-xs mt-1">Sabor Argentino</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
+          <div className="container-app relative z-10 pb-16 w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="flex flex-col sm:flex-row gap-4 justify-start"
+            >
+              <Link href={settings.hero?.ctaLink || "/menu"}>
+                <Button variant="gold" size="lg" icon={<ArrowRight className="w-5 h-5" />} iconPosition="right">
+                  {settings.hero?.ctaText || 'Ver Menú'}
+                </Button>
+              </Link>
+              <Link href={settings.hero?.secondaryCtaLink || "/pedido"}>
+                <Button variant="secondary" size="lg" className="bg-white/10 border-white text-white hover:bg-white hover:text-celeste-600">
+                  {settings.hero?.secondaryCtaText || 'Hacer Pedido'}
+                </Button>
+              </Link>
+            </motion.div>
           </div>
         </section>
 

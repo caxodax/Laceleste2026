@@ -43,7 +43,7 @@ interface OrderFormData {
 }
 
 export default function PedidoPage() {
-  const { info, bcvRate, initialized } = useSettingsStore();
+  const { info, bcvRate, loyalty, initialized } = useSettingsStore();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
@@ -76,16 +76,20 @@ export default function PedidoPage() {
           if (customer.phone) setValue('customerPhone', customer.phone);
           if (customer.email) setValue('customerEmail', customer.email);
           
-          const points = customer.points % 10;
-          if (customer.points > 0 && customer.points % 10 === 0) {
-            toast.success(`¡Felicidades ${customer.name.split(' ')[0]}! Tienes una hamburguesa GRATIS acumulada.`, { duration: 5000 });
-          } else {
-            toast.success(`¡Hola ${customer.name.split(' ')[0]}! Llevas ${points}/10 puntos para tu hamburguesa gratis.`);
+          if (loyalty && loyalty.active) {
+            const targetPoints = loyalty.pointsToReward || 10;
+            const rewardName = loyalty.rewardDescription || 'hamburguesa gratis';
+            const points = customer.points % targetPoints;
+            if (customer.points > 0 && customer.points % targetPoints === 0) {
+              toast.success(`¡Felicidades ${customer.name.split(' ')[0]}! Tienes un(a) ${rewardName.toUpperCase()} acumulado/a.`, { duration: 5000 });
+            } else {
+              toast.success(`¡Hola ${customer.name.split(' ')[0]}! Llevas ${points}/${targetPoints} puntos para tu ${rewardName}.`);
+            }
           }
         }
       });
     }
-  }, [customerIdCard, setValue]);
+  }, [customerIdCard, setValue, loyalty]);
 
   const deliveryFee = (deliveryType === 'delivery' && (info?.showDelivery ?? restaurantSettings.showDelivery)) ? (info?.deliveryFee ?? restaurantSettings.deliveryFee ?? 0) : 0;
   const tax = (info?.showTax ?? restaurantSettings.showTax) ? (subtotal * (info?.taxRate ?? restaurantSettings.taxRate ?? 0)) : 0;
@@ -130,8 +134,10 @@ export default function PedidoPage() {
         notes: data.notes
       });
 
-      // 3. Loyalty: Credit 1 point per order
-      await addPointsToCustomer(data.customerIdCard);
+      // 3. Loyalty: Credit points per order if active
+      if (loyalty && loyalty.active) {
+        await addPointsToCustomer(data.customerIdCard, loyalty.pointsPerOrder || 1);
+      }
 
       // 4. If table order, update table status
       if (tableId && data.deliveryType === 'table') {
