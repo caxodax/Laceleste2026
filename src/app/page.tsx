@@ -469,34 +469,15 @@ export default function HomePage() {
                     <Calendar className="w-6 h-6" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-4">Horarios comerciales</h3>
-                  <div className="space-y-3">
-                    {settings.info?.schedule ? (
-                      Object.entries(settings.info.schedule).map(([day, time]) => {
-                        const dayNames: Record<string, string> = {
-                          monday: 'Lunes',
-                          tuesday: 'Martes',
-                          wednesday: 'Miércoles',
-                          thursday: 'Jueves',
-                          friday: 'Viernes',
-                          saturday: 'Sábado',
-                          sunday: 'Domingo'
-                        };
-                        return (
-                          <div key={day} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                            <span className="font-semibold text-gray-700">{dayNames[day] || day}</span>
-                            <span className="text-gray-500 font-mono">
-                              {time.closed ? (
-                                <span className="text-red-500 font-bold uppercase text-[11px] bg-red-50 px-2 py-0.5 rounded-full">Cerrado</span>
-                              ) : (
-                                `${time.open} - ${time.close}`
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <p className="text-gray-500 text-sm">Cargando horarios...</p>
-                    )}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center text-sm border-b border-gray-50 pb-3">
+                      <span className="font-semibold text-gray-700">Martes a Domingo</span>
+                      <span className="text-gray-600 font-bold font-mono">5:00 PM - 12:00 AM</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-semibold text-gray-700">Lunes</span>
+                      <span className="text-red-500 font-bold uppercase text-[11px] bg-red-50 px-3 py-1 rounded-full">Cerrado</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -565,20 +546,17 @@ export default function HomePage() {
                     {settings.info?.address || 'Urb. Nueva Segovia, Barquisimeto, Estado Lara.'}
                   </p>
                   
-                  {/* Mock elegant map preview */}
-                  <div className="w-full h-36 bg-gray-100 rounded-2xl relative overflow-hidden group shadow-inner border border-gray-50">
-                    <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] bg-white opacity-80" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors duration-300">
-                      <div className="w-10 h-10 bg-celeste-600 text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                        <MapPin className="w-5 h-5" />
-                      </div>
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-gray-900 bg-white/90 px-2 py-0.5 rounded-full mt-2 shadow-sm">Ver en Google Maps</span>
-                    </div>
-                    <a 
-                      href={`https://maps.google.com/?q=${encodeURIComponent(settings.info?.address || 'La Celeste Barquisimeto')}`}
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="absolute inset-0 z-10" 
+                  {/* Google Maps Real Iframe */}
+                  <div className="w-full h-44 rounded-2xl overflow-hidden border border-gray-100 shadow-inner relative">
+                    <iframe 
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3928.288142233411!2d-69.29710159999999!3d10.075459799999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e8767006e9be2e5%3A0x64980fa2ae3f4c14!2sLa%20Celeste!5e0!3m2!1ses!2sve!4v1778989416935!5m2!1ses!2sve" 
+                      width="100%" 
+                      height="100%" 
+                      style={{ border: 0 }} 
+                      allowFullScreen 
+                      loading="lazy" 
+                      referrerPolicy="no-referrer-when-downgrade"
+                      className="rounded-2xl"
                     />
                   </div>
                 </div>
