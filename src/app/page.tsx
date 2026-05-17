@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, Star, Clock, MapPin, Phone } from 'lucide-react';
+import { ArrowRight, Star, Clock, MapPin, Phone, Award, ShieldCheck, Zap, Utensils, MessageSquare, Mail, Calendar, Sparkles, Instagram } from 'lucide-react';
 import Image from 'next/image';
 import { Header, Footer, WhatsAppButton } from '@/components/layout';
 import { Button, MenuCard, Skeleton } from '@/components/ui';
@@ -11,7 +11,7 @@ import { MenuCardSkeleton } from '@/components/menu';
 import { useCartStore } from '@/store/cartStore';
 import { getProducts, getCategories } from '@/lib/services/products';
 import { getAllSettings } from '@/lib/services/settings';
-import { Product, Category, HeroSettings, AboutSettings, RestaurantSettings } from '@/types';
+import { Product, Category, HeroSettings, AboutSettings, RestaurantSettings, LoyaltySettings } from '@/types';
 import { ProductDetailModal } from '@/components/menu/ProductDetailModal';
 import toast from 'react-hot-toast';
 
@@ -23,7 +23,8 @@ export default function HomePage() {
     info: RestaurantSettings | null;
     hero: HeroSettings | null;
     about: AboutSettings | null;
-  }>({ info: null, hero: null, about: null });
+    loyalty: LoyaltySettings | null;
+  }>({ info: null, hero: null, about: null, loyalty: null });
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,10 +45,24 @@ export default function HomePage() {
         ]);
         setProducts(productsData);
         setCategories(categoriesData);
+        const defaultLoyalty: LoyaltySettings = {
+          active: true,
+          pointsPerOrder: 1,
+          pointsToReward: 10,
+          rewardDescription: 'Hamburguesa Gratis'
+        };
+
+        const defaultAbout: AboutSettings = {
+          title: 'La Celeste: Pasión por las Hamburguesas Artesanales',
+          description: 'Nacimos con la pasión de ofrecer hamburguesas artesanales de verdad en Barquisimeto, fusionando la tradición culinaria y las recetas clásicas de nuestra historia.\n\nCada día seleccionamos los cortes de carne más tiernos y horneamos nuestro pan brioche para entregarte un sabor inigualable.',
+          image: 'https://ttglahstbeogwzqlmhkj.supabase.co/storage/v1/object/public/products/8esix4dbahv-1778969817795-full.webp'
+        };
+
         setSettings({
           info: settingsData.restaurant_info || null,
           hero: settingsData.hero_settings || null,
-          about: settingsData.about_settings || null,
+          about: settingsData.about_settings || defaultAbout,
+          loyalty: settingsData.loyalty_settings || defaultLoyalty,
         });
       } catch (error) {
         console.error('Error fetching home data:', error);
@@ -185,6 +200,51 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Sello de Calidad / Ventajas */}
+        <section className="py-16 bg-cream-50 overflow-hidden border-b border-gray-100">
+          <div className="container-app">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[
+                {
+                  icon: <Utensils className="w-8 h-8 text-celeste-600" />,
+                  title: "Carne 100% Selecta",
+                  desc: "Carne selecta de res de la mejor calidad, molida y sazonada artesanalmente cada mañana."
+                },
+                {
+                  icon: <Sparkles className="w-8 h-8 text-gold-500" />,
+                  title: "Pan Brioche Diario",
+                  desc: "Horneado fresco todos los días. Increíblemente suave, tierno y con el toque de mantequilla perfecto."
+                },
+                {
+                  icon: <Zap className="w-8 h-8 text-celeste-600" />,
+                  title: "Pedidos QR en Mesa",
+                  desc: "Escanea el código de tu mesa, realiza tu pedido en segundos y disfruta de una experiencia sin demoras."
+                },
+                {
+                  icon: <ShieldCheck className="w-8 h-8 text-gold-500" />,
+                  title: "Delivery Térmico",
+                  desc: "Empacado en bolsas térmicas premium para garantizar que tu comida llegue tan perfecta como en el local."
+                }
+              ].map((item, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="p-6 bg-white rounded-3xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 group"
+                >
+                  <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-5 transition-colors duration-300 group-hover:bg-celeste-50">
+                    {item.icon}
+                  </div>
+                  <h4 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h4>
+                  <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Featured Products */}
         <section className="section bg-white overflow-hidden">
           <div className="container-app">
@@ -235,6 +295,91 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Club de Puntos / Tarjeta Digital */}
+        {settings.loyalty && settings.loyalty.active && (
+          <section className="section bg-white overflow-hidden border-t border-gray-100">
+            <div className="container-app">
+              <div className="grid lg:grid-cols-2 gap-12 items-center">
+                
+                {/* Visual Card Column */}
+                <motion.div
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="relative flex justify-center lg:justify-start"
+                >
+                  {/* Vista previa en tarjeta premium estilo Club */}
+                  <div className="w-full max-w-md p-8 bg-gradient-to-br from-gold-400 via-gold-500 to-amber-600 rounded-3xl text-white shadow-2xl relative overflow-hidden flex flex-col justify-between h-56 transition-transform duration-500 hover:scale-[1.03] group">
+                    <div className="absolute top-0 right-0 w-44 h-44 bg-white/10 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-xs font-bold tracking-widest uppercase opacity-80">Club La Celeste</span>
+                        <h4 className="text-2xl font-black mt-1">Tarjeta de Puntos</h4>
+                      </div>
+                      <Award className="w-12 h-12 text-amber-100 animate-pulse" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-xs uppercase font-bold tracking-wider opacity-85">Tu Meta</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-black">{settings.loyalty.pointsToReward} Puntos</span>
+                        <span className="text-sm opacity-90">= 1 {settings.loyalty.rewardDescription || 'Recompensa'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Decorative Elements */}
+                  <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-gold-400 rounded-full mix-blend-multiply filter blur-2xl opacity-40 animate-blob" />
+                  <div className="absolute -top-6 -left-6 w-32 h-32 bg-celeste-400 rounded-full mix-blend-multiply filter blur-2xl opacity-30 animate-blob animation-delay-2000" />
+                </motion.div>
+
+                {/* Text and Steps Column */}
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  className="space-y-6"
+                >
+                  <span className="badge-gold">🎁 Club La Celeste</span>
+                  <h2 className="heading-2 text-gray-900">Programa de Fidelización</h2>
+                  <p className="text-gray-600 leading-relaxed text-lg">
+                    ¡Queremos premiar tu preferencia! Únete gratis a nuestro club. Cada vez que realices una compra en la web o comas en nuestro local, acumulas puntos para canjearlos por una recompensa deliciosa.
+                  </p>
+
+                  <div className="space-y-4 pt-2">
+                    {[
+                      {
+                        step: "01",
+                        title: "Realiza tu Pedido",
+                        desc: "Ingresa tu número de Cédula o RIF al hacer tu compra online o al cerrar tu cuenta en el local."
+                      },
+                      {
+                        step: "02",
+                        title: "Acumula Puntos",
+                        desc: `Suma ${settings.loyalty.pointsPerOrder} ${settings.loyalty.pointsPerOrder === 1 ? 'punto' : 'puntos'} automáticamente con cada compra que realices.`
+                      },
+                      {
+                        step: "03",
+                        title: `¡Reclama tu ${settings.loyalty.rewardDescription}!`,
+                        desc: `Al alcanzar los ${settings.loyalty.pointsToReward} puntos, tu próxima recompensa va por nuestra cuenta.`
+                      }
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex gap-4 items-start">
+                        <span className="text-2xl font-black text-gold-500 font-mono leading-none pt-1">{item.step}</span>
+                        <div>
+                          <h4 className="font-bold text-gray-900">{item.title}</h4>
+                          <p className="text-sm text-gray-500">{item.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+                
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* About Us (Nosotros) Section */}
         {settings.about && (
           <section className="section bg-cream-50 overflow-hidden">
@@ -282,13 +427,17 @@ export default function HomePage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-4 pt-4">
-                    <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 min-w-[150px]">
+                    <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 min-w-[120px]">
                       <p className="text-3xl font-bold text-celeste-600 mb-1">100%</p>
                       <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Artesanal</p>
                     </div>
-                    <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 min-w-[150px]">
+                    <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 min-w-[120px]">
                       <p className="text-3xl font-bold text-gold-500 mb-1">Top</p>
                       <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Ingredientes</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 flex-1 min-w-[120px]">
+                      <p className="text-3xl font-bold text-celeste-600 mb-1">+10K</p>
+                      <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Satisfechos</p>
                     </div>
                   </div>
 
@@ -302,6 +451,142 @@ export default function HomePage() {
             </div>
           </section>
         )}
+
+        {/* Horarios, Ubicación y Contacto */}
+        <section className="section bg-cream-50 overflow-hidden border-t border-b border-gray-100">
+          <div className="container-app">
+            <div className="grid lg:grid-cols-3 gap-8">
+              
+              {/* Card 1: Horarios */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between"
+              >
+                <div>
+                  <div className="w-12 h-12 bg-celeste-50 rounded-2xl flex items-center justify-center mb-6 text-celeste-600">
+                    <Calendar className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Horarios comerciales</h3>
+                  <div className="space-y-3">
+                    {settings.info?.schedule ? (
+                      Object.entries(settings.info.schedule).map(([day, time]) => {
+                        const dayNames: Record<string, string> = {
+                          monday: 'Lunes',
+                          tuesday: 'Martes',
+                          wednesday: 'Miércoles',
+                          thursday: 'Jueves',
+                          friday: 'Viernes',
+                          saturday: 'Sábado',
+                          sunday: 'Domingo'
+                        };
+                        return (
+                          <div key={day} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+                            <span className="font-semibold text-gray-700">{dayNames[day] || day}</span>
+                            <span className="text-gray-500 font-mono">
+                              {time.closed ? (
+                                <span className="text-red-500 font-bold uppercase text-[11px] bg-red-50 px-2 py-0.5 rounded-full">Cerrado</span>
+                              ) : (
+                                `${time.open} - ${time.close}`
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-gray-500 text-sm">Cargando horarios...</p>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Card 2: Contacto Rápido */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between"
+              >
+                <div>
+                  <div className="w-12 h-12 bg-gold-50 rounded-2xl flex items-center justify-center mb-6 text-gold-600">
+                    <MessageSquare className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Ponte en contacto</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed mb-6">
+                    ¿Tienes dudas, deseas cotizar un evento privado o quieres hacer tu pedido directamente? Estamos listos para atenderte por cualquier canal.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <a 
+                      href={`https://wa.me/${settings.info?.whatsapp || '584245645357'}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100 transition-colors hover:bg-celeste-50 hover:border-celeste-100 group"
+                    >
+                      <Phone className="w-5 h-5 text-gray-400 group-hover:text-celeste-600" />
+                      <div>
+                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">WhatsApp</p>
+                        <p className="text-sm font-bold text-gray-800">{settings.info?.whatsapp || '+58 424-5645357'}</p>
+                      </div>
+                    </a>
+
+                    <a 
+                      href={settings.info?.instagram || "https://instagram.com/laceleste"} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100 transition-colors hover:bg-gold-50 hover:border-gold-100 group"
+                    >
+                      <Instagram className="w-5 h-5 text-gray-400 group-hover:text-gold-600" />
+                      <div>
+                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Instagram</p>
+                        <p className="text-sm font-bold text-gray-800">@laceleste.bqto</p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Card 3: Ubicación y Mapa */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between"
+              >
+                <div>
+                  <div className="w-12 h-12 bg-celeste-50 rounded-2xl flex items-center justify-center mb-6 text-celeste-600">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">¿Dónde estamos?</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed mb-6">
+                    {settings.info?.address || 'Urb. Nueva Segovia, Barquisimeto, Estado Lara.'}
+                  </p>
+                  
+                  {/* Mock elegant map preview */}
+                  <div className="w-full h-36 bg-gray-100 rounded-2xl relative overflow-hidden group shadow-inner border border-gray-50">
+                    <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] bg-white opacity-80" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors duration-300">
+                      <div className="w-10 h-10 bg-celeste-600 text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wider font-bold text-gray-900 bg-white/90 px-2 py-0.5 rounded-full mt-2 shadow-sm">Ver en Google Maps</span>
+                    </div>
+                    <a 
+                      href={`https://maps.google.com/?q=${encodeURIComponent(settings.info?.address || 'La Celeste Barquisimeto')}`}
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="absolute inset-0 z-10" 
+                    />
+                  </div>
+                </div>
+              </motion.div>
+
+            </div>
+          </div>
+        </section>
 
         {/* CTA Section */}
         <section className="section bg-celeste-600 text-white">
